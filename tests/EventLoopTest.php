@@ -1,6 +1,6 @@
 <?php
 
-namespace M6Test\Front\Async;
+namespace M6WebTest\Tornado;
 
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\EventLoop;

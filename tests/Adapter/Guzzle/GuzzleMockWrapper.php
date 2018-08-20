@@ -1,6 +1,6 @@
 <?php
 
-namespace M6Test\Front\Async\Adapter\Guzzle;
+namespace M6WebTest\Tornado\Adapter\Guzzle;
 
 use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
 use GuzzleHttp\Promise;

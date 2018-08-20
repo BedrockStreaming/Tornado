@@ -1,11 +1,11 @@
 <?php
 
-namespace M6Test\Front\Async\Adapter\Guzzle;
+namespace M6WebTest\Tornado\Adapter\Guzzle;
 
 use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
 use M6Web\Tornado\EventLoop;
 
-class HttpClientTest extends \M6Test\Front\Async\HttpClientTest
+class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
 {
     protected function createHttpClient(EventLoop $eventLoop, GuzzleClientWrapper $wrapper): \M6Web\Tornado\HttpClient
     {

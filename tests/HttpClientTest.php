@@ -1,6 +1,6 @@
 <?php
 
-namespace M6Test\Front\Async;
+namespace M6WebTest\Tornado;
 
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
@@ -8,7 +8,7 @@ use GuzzleHttp\Psr7\Response;
 use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
 use M6Web\Tornado\HttpClient;
 use M6Web\Tornado\EventLoop;
-use M6Test\Front\Async\Adapter\Guzzle\GuzzleMockWrapper;
+use M6WebTest\Tornado\Adapter\Guzzle\GuzzleMockWrapper;
 use PHPUnit\Framework\TestCase;
 
 abstract class HttpClientTest extends TestCase

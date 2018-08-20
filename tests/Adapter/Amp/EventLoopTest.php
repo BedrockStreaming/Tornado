@@ -1,11 +1,11 @@
 <?php
 
-namespace M6Test\Front\Async\Adapter\Amp;
+namespace M6WebTest\Tornado\Adapter\Amp;
 
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\Adapter\Amp;
 
-class EventLoopTest extends \M6Test\Front\Async\EventLoopTest
+class EventLoopTest extends \M6WebTest\Tornado\EventLoopTest
 {
     protected function createEventLoop(): EventLoop
     {
