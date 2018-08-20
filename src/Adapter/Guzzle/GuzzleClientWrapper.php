@@ -1,6 +1,6 @@
 <?php
 
-namespace M6\Front\Async\Adapter\Guzzle;
+namespace M6Web\Tornado\Adapter\Guzzle;
 
 interface GuzzleClientWrapper
 {

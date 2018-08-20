@@ -1,6 +1,6 @@
 <?php
 
-namespace M6\Front\Async;
+namespace M6Web\Tornado;
 
 /**
  * A deferred allows you to promise something, and to resolve/fail it later.

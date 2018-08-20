@@ -1,6 +1,6 @@
 <?php
 
-namespace M6\Front\Async;
+namespace M6Web\Tornado;
 
 use Psr\Http\Message\RequestInterface;
 

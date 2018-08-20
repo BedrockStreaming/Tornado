@@ -2,8 +2,8 @@
 
 namespace M6Test\Front\Async\Adapter\Synchronous;
 
-use M6\Front\Async\EventLoop;
-use M6\Front\Async\Adapter\Synchronous;
+use M6Web\Tornado\EventLoop;
+use M6Web\Tornado\Adapter\Synchronous;
 
 class EventLoopTest extends \M6Test\Front\Async\EventLoopTest
 {

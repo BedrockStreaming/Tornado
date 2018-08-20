@@ -2,8 +2,8 @@
 
 namespace M6Test\Front\Async\Adapter\Amp;
 
-use M6\Front\Async\EventLoop;
-use M6\Front\Async\Adapter\Amp;
+use M6Web\Tornado\EventLoop;
+use M6Web\Tornado\Adapter\Amp;
 
 class EventLoopTest extends \M6Test\Front\Async\EventLoopTest
 {

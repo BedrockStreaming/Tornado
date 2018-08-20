@@ -1,14 +1,14 @@
 <?php
 
-namespace M6\Front\Async\Adapter\Guzzle;
+namespace M6Web\Tornado\Adapter\Guzzle;
 
 use GuzzleHttp\Exception\RequestException;
-use M6\Front\Async\EventLoop;
-use M6\Front\Async\Promise;
+use M6Web\Tornado\EventLoop;
+use M6Web\Tornado\Promise;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
-class HttpClient implements \M6\Front\Async\HttpClient
+class HttpClient implements \M6Web\Tornado\HttpClient
 {
     /**
      * @var EventLoop

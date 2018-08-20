@@ -2,9 +2,9 @@
 
 namespace M6Test\Front\Async;
 
-use M6\Front\Async\Deferred;
-use M6\Front\Async\EventLoop;
-use M6\Front\Async\Promise;
+use M6Web\Tornado\Deferred;
+use M6Web\Tornado\EventLoop;
+use M6Web\Tornado\Promise;
 use PHPUnit\Framework\TestCase;
 
 abstract class EventLoopTest extends TestCase

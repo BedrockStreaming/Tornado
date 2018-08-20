@@ -1,11 +1,11 @@
 <?php
 
-namespace M6\Front\Async\Adapter\Amp;
+namespace M6Web\Tornado\Adapter\Amp;
 
-use M6\Front\Async\Deferred;
-use M6\Front\Async\Promise;
+use M6Web\Tornado\Deferred;
+use M6Web\Tornado\Promise;
 
-class EventLoop implements \M6\Front\Async\EventLoop
+class EventLoop implements \M6Web\Tornado\EventLoop
 {
     /**
      * {@inheritdoc}

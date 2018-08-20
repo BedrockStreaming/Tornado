@@ -5,9 +5,9 @@ namespace M6Test\Front\Async;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use M6\Front\Async\Adapter\Guzzle\GuzzleClientWrapper;
-use M6\Front\Async\HttpClient;
-use M6\Front\Async\EventLoop;
+use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
+use M6Web\Tornado\HttpClient;
+use M6Web\Tornado\EventLoop;
 use M6Test\Front\Async\Adapter\Guzzle\GuzzleMockWrapper;
 use PHPUnit\Framework\TestCase;
 
@@ -17,8 +17,8 @@ abstract class HttpClientTest extends TestCase
 
     public function eventLoopProvider()
     {
-        yield 'synchronous' => [new \M6\Front\Async\Adapter\Synchronous\EventLoop()];
-        yield 'AMP' => [new \M6\Front\Async\Adapter\Amp\EventLoop()];
+        yield 'synchronous' => [new \M6Web\Tornado\Adapter\Synchronous\EventLoop()];
+        yield 'AMP' => [new \M6Web\Tornado\Adapter\Amp\EventLoop()];
     }
 
     /**
