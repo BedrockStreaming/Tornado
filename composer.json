@@ -1,0 +1,24 @@
+{
+    "name": "m6web/tornado",
+    "description": "A library for asynchronous programming.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "M6Web",
+            "email": "opensource@m6web.fr",
+            "homepage": "http://tech.m6web.fr/"
+        }
+    ],
+    "autoload": {
+        "psr-4": {"M6Web\\Tornado\\": "src/"}
+    },
+    "require": {
+        "php": "^7.0"
+    },
+    "require-dev": {
+    },
+    "config": {
+        "bin-dir": "bin/"
+    }
+}
