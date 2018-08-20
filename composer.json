@@ -13,10 +13,19 @@
     "autoload": {
         "psr-4": {"M6Web\\Tornado\\": "src/"}
     },
+    "autoload-dev": {
+        "psr-4": {
+            "M6WebTest\\Tornado\\": "tests/"
+        }
+    },
     "require": {
-        "php": "^7.0"
+        "php": "^7.1",
+        "psr/http-message": "^1.0"
     },
     "require-dev": {
+        "phpunit/phpunit": "^7.3",
+        "amphp/amp": "^2.0",
+        "guzzlehttp/guzzle": "^6.3"
     },
     "config": {
         "bin-dir": "bin/"
