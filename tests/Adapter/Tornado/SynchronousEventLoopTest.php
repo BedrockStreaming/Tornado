@@ -1,15 +1,15 @@
 <?php
 
-namespace M6WebTest\Tornado\Adapter\Synchronous;
+namespace M6WebTest\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\EventLoop;
-use M6Web\Tornado\Adapter\Synchronous;
+use M6Web\Tornado\Adapter\Tornado;
 
-class EventLoopTest extends \M6WebTest\Tornado\EventLoopTest
+class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
 {
     protected function createEventLoop(): EventLoop
     {
-        return new Synchronous\EventLoop();
+        return new Tornado\SynchronousEventLoop();
     }
 
     public function testIdle($expectedSequence = '')

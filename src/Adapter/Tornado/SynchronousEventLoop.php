@@ -1,11 +1,11 @@
 <?php
 
-namespace M6Web\Tornado\Adapter\Synchronous;
+namespace M6Web\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
-class EventLoop implements \M6Web\Tornado\EventLoop
+class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
 {
     /**
      * {@inheritdoc}
