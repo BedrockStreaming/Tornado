@@ -27,7 +27,9 @@
         "amphp/amp": "^2.0",
         "guzzlehttp/guzzle": "^6.3",
         "m6web/php-cs-fixer-config": "^1.0",
-        "ext-curl": "^7.1"
+        "ext-curl": "^7.1",
+        "react/event-loop": "^1.0",
+        "react/promise": "^2.7"
     },
     "config": {
         "bin-dir": "bin/"
