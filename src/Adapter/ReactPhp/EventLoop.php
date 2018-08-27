@@ -35,7 +35,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $this->reactEventLoop->run();
 
         if ($isRejected) {
-            /** @var $value \Exception */
+            /* @var $value \Exception */
             throw $value;
         }
 
