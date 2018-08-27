@@ -12,7 +12,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function wait(Promise $promise)
     {
-        while ($promise->isPending() && $this->tasks) {
+        do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
             $this->tasks = [];
@@ -31,7 +31,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     $task->promise->reject($exception);
                 }
             }
-        }
+        } while ($promise->isPending() && $this->tasks);
 
         return $promise->getValue();
     }

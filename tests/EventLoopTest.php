@@ -164,6 +164,21 @@ abstract class EventLoopTest extends TestCase
         $this->assertEquals([1, [2, 3], 4], $eventLoop->wait($promise));
     }
 
+    public function testEventLoopFirstTick()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $count = 0;
+        $oneStepGenerator = function (EventLoop $eventLoop, int &$count): \Generator {
+            yield $eventLoop->promiseFulfilled(null);
+            $count++;
+        };
+        $eventLoop->async($oneStepGenerator($eventLoop, $count));
+        $eventLoop->wait($eventLoop->promiseFulfilled(null));
+
+        $this->assertEquals(1, $count);
+    }
+
     public function testIdle($expectedSequence = 'ABCABA')
     {
         $eventLoop = $this->createEventLoop();
