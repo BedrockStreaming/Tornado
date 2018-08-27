@@ -1,0 +1,5 @@
+{
+    "require-dev": {
+        "m6web/php-cs-fixer-config": "^1.0"
+    }
+}
