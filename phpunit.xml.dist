@@ -11,6 +11,10 @@
         <!-- define your env variables for the test env here -->
     </php>
 
+    <listeners>
+        <listener class="M6WebTest\Tornado\Adapter\Amp\LoopReset" />
+    </listeners>
+
     <testsuites>
         <testsuite name="Tornado Test Suite">
             <directory>tests</directory>
