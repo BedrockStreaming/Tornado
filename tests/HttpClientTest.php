@@ -18,6 +18,8 @@ abstract class HttpClientTest extends TestCase
     public function eventLoopProvider()
     {
         yield 'Tornado (synchronous)' => [new \M6Web\Tornado\Adapter\Tornado\SynchronousEventLoop()];
+        yield 'Tornado' => [new \M6Web\Tornado\Adapter\Tornado\EventLoop()];
+        yield 'ReactPhp' => [new \M6Web\Tornado\Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop())];
         yield 'AMP' => [new \M6Web\Tornado\Adapter\Amp\EventLoop()];
     }
 
