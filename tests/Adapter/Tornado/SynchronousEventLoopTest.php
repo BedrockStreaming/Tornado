@@ -29,4 +29,10 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         // In the synchronous case, there is no race, first promise always win
         parent::testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(1);
     }
+
+    public function testReadableStream($expectedSequence = '')
+    {
+        // Never wait…
+        parent::testReadableStream('W0W12345W6R01R23R45R6R');
+    }
 }

@@ -47,4 +47,22 @@ interface EventLoop
      * Creates a deferred, allowing to create and resolve your own promises.
      */
     public function deferred(): Deferred;
+
+    /**
+     * Returns a promise that will be resolved with the input stream when it becomes readable.
+     *
+     * @param $stream
+     *
+     * @return Promise
+     */
+    public function readable($stream): Promise;
+
+    /**
+     * Returns a promise that will be resolved with the input stream when it becomes writable.
+     *
+     * @param $stream
+     *
+     * @return Promise
+     */
+    public function writable($stream): Promise;
 }

@@ -143,4 +143,20 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
 
         return $deferred;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function readable($stream): Promise
+    {
+        return $this->promiseFulfilled($stream);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function writable($stream): Promise
+    {
+        return $this->promiseFulfilled($stream);
+    }
 }

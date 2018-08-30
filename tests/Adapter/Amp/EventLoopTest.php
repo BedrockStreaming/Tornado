@@ -11,4 +11,10 @@ class EventLoopTest extends \M6WebTest\Tornado\EventLoopTest
     {
         return new Amp\EventLoop();
     }
+
+    public function testReadableStream($expectedSequence = '')
+    {
+        // Because AMP doesn't trigger write callback immediately
+        parent::testReadableStream('W0R0W12345R12R34R5W6R6R');
+    }
 }
