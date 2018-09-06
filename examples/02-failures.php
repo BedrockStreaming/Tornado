@@ -3,8 +3,8 @@
 
 include __DIR__.'/../vendor/autoload.php';
 
-use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\Adapter;
+use M6Web\Tornado\EventLoop;
 
 function throwingGenerator(): \Generator
 {

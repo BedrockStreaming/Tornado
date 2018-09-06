@@ -2,9 +2,9 @@
 
 namespace M6WebTest\Tornado\Adapter\Amp;
 
+use PHPUnit\Framework\Test;
 use PHPUnit\Framework\TestListener;
 use PHPUnit\Framework\TestListenerDefaultImplementation;
-use PHPUnit\Framework\Test;
 
 // From https://github.com/amphp/phpunit-util/blob/master/src/LoopReset.php
 class LoopReset implements TestListener

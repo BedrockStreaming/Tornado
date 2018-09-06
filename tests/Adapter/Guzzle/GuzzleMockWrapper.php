@@ -2,8 +2,8 @@
 
 namespace M6WebTest\Tornado\Adapter\Guzzle;
 
-use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
 use GuzzleHttp\Promise;
+use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
 
 final class GuzzleMockWrapper implements GuzzleClientWrapper
 {
