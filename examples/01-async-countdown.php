@@ -9,7 +9,7 @@ use M6Web\Tornado\Adapter;
 function asynchronousCountdown(EventLoop $eventLoop, string $name, int $count): \Generator
 {
     echo "[$name]\tLet me countdown from $count to 0.\n";
-    for($i=$count;$i>=0;--$i) {
+    for ($i = $count; $i >= 0; $i--) {
         echo "[$name]\t$i\n";
 
         // Let the event loop process other jobs before to continue.
