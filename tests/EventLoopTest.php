@@ -9,6 +9,8 @@ use PHPUnit\Framework\TestCase;
 
 abstract class EventLoopTest extends TestCase
 {
+    use EventLoopTest\PromiseAllTest;
+
     abstract protected function createEventLoop(): EventLoop;
 
     public function testFulfilledPromise()
@@ -31,37 +33,6 @@ abstract class EventLoopTest extends TestCase
 
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->promiseRejected($expectedException);
-
-        $this->expectException(get_class($expectedException));
-        $eventLoop->wait($promise);
-    }
-
-    public function testAllPromisesFulfilled()
-    {
-        $expectedValues = [1, 'ok', new \stdClass(), ['array']];
-
-        $eventLoop = $this->createEventLoop();
-        $promises = array_map([$eventLoop, 'promiseFulfilled'], $expectedValues);
-        $promise = $eventLoop->promiseAll(...$promises);
-
-        $this->assertEquals(
-            $expectedValues,
-            $eventLoop->wait($promise)
-        );
-    }
-
-    public function testAllPromisesRejected()
-    {
-        $expectedException = new class() extends \Exception {
-        };
-
-        $eventLoop = $this->createEventLoop();
-        $promise = $eventLoop->promiseAll(
-            $eventLoop->promiseFulfilled(1),
-            $eventLoop->promiseRejected($expectedException),
-            $eventLoop->promiseFulfilled(2),
-            $eventLoop->promiseRejected(new \Exception())
-        );
 
         $this->expectException(get_class($expectedException));
         $eventLoop->wait($promise);
