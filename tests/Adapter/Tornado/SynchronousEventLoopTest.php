@@ -17,4 +17,16 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         //By definition, this is not an asynchronous EventLoop
         parent::testIdle('AAABBC');
     }
+
+    public function testPromiseRaceShouldResolvePromisesArray(int $expectedValue = 2)
+    {
+        // In the synchronous case, there is no race, first promise always win
+        parent::testPromiseRaceShouldResolvePromisesArray(1);
+    }
+
+    public function testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(int $expectedValue = 2)
+    {
+        // In the synchronous case, there is no race, first promise always win
+        parent::testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(1);
+    }
 }

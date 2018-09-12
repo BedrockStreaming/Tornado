@@ -24,6 +24,11 @@ interface EventLoop
     public function promiseAll(Promise ...$promises): Promise;
 
     /**
+     * Creates a promise that will behave like the first settled input promise, while others will be ignored.
+     **/
+    public function promiseRace(Promise ...$promises): Promise;
+
+    /**
      * Creates a promise already resolved with $value.
      */
     public function promiseFulfilled($value): Promise;

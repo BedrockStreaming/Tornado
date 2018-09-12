@@ -51,12 +51,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $globalPromise = $this->promisePending();
         $nbPromises = count($promises);
+        if ($nbPromises === 0) {
+            return $this->promiseFulfilled([]);
+        }
+
+        $globalPromise = $this->promisePending();
         $allResults = [];
 
-        // To be sure that the last resolved promise resolves the global promise immediately,
-        //
+        // To ensure that the last resolved promise resolves the global promise immediately
         $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, $nbPromises, &$allResults): \Generator {
             try {
                 $allResults[$index] = yield $promise;
@@ -76,6 +79,40 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
         foreach ($promises as $index => $promise) {
             $this->async($waitOnePromise($index, $promise));
+        }
+
+        return $globalPromise;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function promiseRace(Promise ...$promises): Promise
+    {
+        if (empty($promises)) {
+            return $this->promiseFulfilled(null);
+        }
+
+        $globalPromise = $this->promisePending();
+        $isFirstPromise = true;
+
+        $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
+            try {
+                $result = yield $promise;
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $globalPromise->resolve($result);
+                }
+            } catch (\Throwable $throwable) {
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $globalPromise->reject($throwable);
+                }
+            }
+        };
+
+        foreach ($promises as $index => $promise) {
+            $this->async($wrapPromise($promise));
         }
 
         return $globalPromise;
