@@ -51,12 +51,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $globalPromise = $this->promisePending();
         $nbPromises = count($promises);
+        if ($nbPromises === 0) {
+            return $this->promiseFulfilled([]);
+        }
+
+        $globalPromise = $this->promisePending();
         $allResults = [];
 
-        // To be sure that the last resolved promise resolves the global promise immediately,
-        //
+        // To ensure that the last resolved promise resolves the global promise immediately
         $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, $nbPromises, &$allResults): \Generator {
             try {
                 $allResults[$index] = yield $promise;

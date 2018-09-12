@@ -8,7 +8,7 @@ trait PromiseAllTest
 {
     abstract protected function createEventLoop(): EventLoop;
 
-    public function testAllPromisesFulfilled()
+    public function testPromiseAllShouldResolvePromisesArray()
     {
         $expectedValues = [1, 'ok', new \stdClass(), ['array']];
 
@@ -22,7 +22,7 @@ trait PromiseAllTest
         );
     }
 
-    public function testAllPromisesRejected()
+    public function testPromiseAllShouldRejectIfAnyInputPromiseRejects()
     {
         $expectedException = new class() extends \Exception {
         };
@@ -37,5 +37,41 @@ trait PromiseAllTest
 
         $this->expectException(get_class($expectedException));
         $eventLoop->wait($promise);
+    }
+
+    public function testPromiseAllShouldResolveEmptyInput()
+    {
+        $eventLoop = $this->createEventLoop();
+        $promise = $eventLoop->promiseAll();
+
+        $this->assertEquals(
+            [],
+            $eventLoop->wait($promise)
+        );
+    }
+
+    public function testPromiseAllShouldPreserveTheOrderOfArrayWhenResolvingAsyncPromises()
+    {
+        $eventLoop = $this->createEventLoop();
+        $deferred = $eventLoop->deferred();
+
+        $eventLoop->async((function () use ($deferred, $eventLoop) {
+            // Wait some ticks before to resolve the promise
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+            $deferred->resolve(2);
+        })()
+        );
+
+        $promise = $eventLoop->promiseAll(
+            $eventLoop->promiseFulfilled(1),
+            $deferred->getPromise(),
+            $eventLoop->promiseFulfilled(3)
+        );
+
+        $this->assertEquals(
+            [1, 2, 3],
+            $eventLoop->wait($promise)
+        );
     }
 }
