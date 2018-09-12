@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 abstract class EventLoopTest extends TestCase
 {
     use
+        EventLoopTest\StreamsTest,
         EventLoopTest\PromiseAllTest,
         EventLoopTest\PromiseRaceTest;
 
@@ -224,60 +225,5 @@ abstract class EventLoopTest extends TestCase
 
         $this->expectException(get_class($expectedException));
         $eventLoop->wait($promise);
-    }
-
-    /**
-     * Returns a pair of two connected streams.
-     *
-     * @return resource[]
-     */
-    private function createStreamPair()
-    {
-        $domain = (DIRECTORY_SEPARATOR === '\\') ? STREAM_PF_INET : STREAM_PF_UNIX;
-        $sockets = stream_socket_pair($domain, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-
-        foreach ($sockets as $socket) {
-            if (function_exists('stream_set_read_buffer')) {
-                stream_set_read_buffer($socket, 0);
-            }
-        }
-
-        return $sockets;
-    }
-
-    public function testReadableStream($expectedSequence = 'W0R0W12345R12R34W6R56R')
-    {
-        $tokens = ['0', '12345', '6'];
-        [$streamIn, $streamOut] = $this->createStreamPair();
-        stream_set_blocking($streamOut, false);
-        $sequence = '';
-
-        $writeToStream = function (EventLoop $eventLoop, $stream, array $tokens) use (&$sequence): \Generator {
-            // At the beginning, nothing can be read from the stream
-            yield $eventLoop->idle();
-            foreach ($tokens as $token) {
-                fwrite(yield $eventLoop->writable($stream), $token);
-                $sequence .= "W$token";
-                // Write twice slower
-                yield $eventLoop->idle();
-                yield $eventLoop->idle();
-            }
-            fclose($stream);
-        };
-
-        $readFromStream = function (EventLoop $eventLoop, $stream) use (&$sequence): \Generator {
-            do {
-                $token = fread(yield $eventLoop->readable($stream), 2);
-                $sequence .= "R$token";
-            } while (strlen($token));
-
-            return $sequence;
-        };
-
-        $eventLoop = $this->createEventLoop();
-        $eventLoop->async($writeToStream($eventLoop, $streamIn, $tokens));
-        $readPromise = $eventLoop->async($readFromStream($eventLoop, $streamOut));
-
-        $this->assertSame($expectedSequence, $eventLoop->wait($readPromise));
     }
 }
