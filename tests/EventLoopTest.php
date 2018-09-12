@@ -9,7 +9,9 @@ use PHPUnit\Framework\TestCase;
 
 abstract class EventLoopTest extends TestCase
 {
-    use EventLoopTest\PromiseAllTest;
+    use
+        EventLoopTest\PromiseAllTest,
+        EventLoopTest\PromiseRaceTest;
 
     abstract protected function createEventLoop(): EventLoop;
 

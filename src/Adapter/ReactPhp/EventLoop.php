@@ -102,12 +102,19 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $reactPromises = [];
-        foreach ($promises as $promise) {
-            $reactPromises[] = self::toReactPromise($promise);
-        }
+        $reactPromises = array_map([self::class, 'toReactPromise'], $promises);
 
         return self::fromReactPromise(\React\Promise\all($reactPromises));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function promiseRace(Promise ...$promises): Promise
+    {
+        $reactPromises = array_map([self::class, 'toReactPromise'], $promises);
+
+        return self::fromReactPromise(\React\Promise\race($reactPromises));
     }
 
     /**

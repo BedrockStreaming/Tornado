@@ -70,6 +70,14 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function promiseRace(Promise ...$promises): Promise
+    {
+        return reset($promises) ?: $this->promiseFulfilled(null);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function promiseFulfilled($value): Promise
     {
         $promise = new class() implements Promise {

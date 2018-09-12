@@ -60,6 +60,40 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function promiseRace(Promise ...$promises): Promise
+    {
+        if (empty($promises)) {
+            return $this->promiseFulfilled(null);
+        }
+
+        $deferred = new \Amp\Deferred();
+        $isFirstPromise = true;
+
+        $wrapPromise = function (\Amp\Promise $promise) use ($deferred, &$isFirstPromise): \Generator {
+            try {
+                $result = yield $promise;
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $deferred->resolve($result);
+                }
+            } catch (\Throwable $throwable) {
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $deferred->fail($throwable);
+                }
+            }
+        };
+
+        foreach ($promises as $index => $promise) {
+            new \Amp\Coroutine($wrapPromise(self::toAmpPromise($promise)));
+        }
+
+        return self::fromAmpPromise($deferred->promise());
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function promiseFulfilled($value): Promise
     {
         return self::fromAmpPromise(

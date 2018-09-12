@@ -87,6 +87,40 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function promiseRace(Promise ...$promises): Promise
+    {
+        if (empty($promises)) {
+            return $this->promiseFulfilled(null);
+        }
+
+        $globalPromise = $this->promisePending();
+        $isFirstPromise = true;
+
+        $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
+            try {
+                $result = yield $promise;
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $globalPromise->resolve($result);
+                }
+            } catch (\Throwable $throwable) {
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $globalPromise->reject($throwable);
+                }
+            }
+        };
+
+        foreach ($promises as $index => $promise) {
+            $this->async($wrapPromise($promise));
+        }
+
+        return $globalPromise;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function promiseFulfilled($value): Promise
     {
         return $this->promisePending()->resolve($value);
