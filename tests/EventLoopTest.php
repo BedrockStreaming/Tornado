@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 abstract class EventLoopTest extends TestCase
 {
     use
+        EventLoopTest\StreamsTest,
         EventLoopTest\PromiseAllTest,
         EventLoopTest\PromiseRaceTest;
 

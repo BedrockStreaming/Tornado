@@ -176,6 +176,40 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return $deferred;
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function readable($stream): Promise
+    {
+        $deferred = $this->deferred();
+        $this->reactEventLoop->addReadStream(
+            $stream,
+            function ($stream) use ($deferred) {
+                $this->reactEventLoop->removeReadStream($stream);
+                $deferred->resolve($stream);
+            }
+        );
+
+        return $deferred->getPromise();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function writable($stream): Promise
+    {
+        $deferred = $this->deferred();
+        $this->reactEventLoop->addWriteStream(
+            $stream,
+            function ($stream) use ($deferred) {
+                $this->reactEventLoop->removeWriteStream($stream);
+                $deferred->resolve($stream);
+            }
+        );
+
+        return $deferred->getPromise();
+    }
+
     private static function fromReactPromise(\React\Promise\PromiseInterface $reactPromise): Promise
     {
         $promise = new class() implements Promise {

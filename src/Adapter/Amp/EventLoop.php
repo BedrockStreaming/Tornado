@@ -155,6 +155,42 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return $deferred;
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function readable($stream): Promise
+    {
+        $deferred = new \Amp\Deferred();
+
+        \Amp\Loop::onReadable(
+            $stream,
+            function ($watcherId, $stream) use ($deferred) {
+                \Amp\Loop::cancel($watcherId);
+                $deferred->resolve($stream);
+            }
+        );
+
+        return self::fromAmpPromise($deferred->promise());
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function writable($stream): Promise
+    {
+        $deferred = new \Amp\Deferred();
+
+        \Amp\Loop::onWritable(
+            $stream,
+            function ($watcherId, $stream) use ($deferred) {
+                \Amp\Loop::cancel($watcherId);
+                $deferred->resolve($stream);
+            }
+        );
+
+        return self::fromAmpPromise($deferred->promise());
+    }
+
     private static function fromAmpPromise(\Amp\Promise $ampPromise): Promise
     {
         $promise = new class() implements Promise {

@@ -177,8 +177,73 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function readable($stream): Promise
+    {
+        $task = $this->readStreamTasks[(int) $stream] ?? $this->createStreamTask($stream, $this->readStreamTasks);
+
+        return $task->promise;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function writable($stream): Promise
+    {
+        $task = $this->writeStreamTasks[(int) $stream] ?? $this->createStreamTask($stream, $this->writeStreamTasks);
+
+        return $task->promise;
+    }
+
     // Tasks are composed of a generator to execute, and the promise of its result.
     private $tasks = [];
+    private $readStreamTasks = [];
+    private $writeStreamTasks = [];
+
+    private function streamsLoop(): \Generator
+    {
+        $except = null;
+        while ($this->readStreamTasks || $this->writeStreamTasks) {
+            yield $this->idle();
+
+            $read = array_column($this->readStreamTasks, 'stream');
+            $write = array_column($this->writeStreamTasks, 'stream');
+            stream_select($read, $write, $except, 0);
+
+            foreach ($read as $stream) {
+                $streamId = (int) $stream;
+                $readStream = $this->readStreamTasks[$streamId];
+                unset($this->readStreamTasks[$streamId]);
+                $readStream->promise->resolve($stream);
+            }
+
+            foreach ($write as $stream) {
+                $streamId = (int) $stream;
+                $writeStream = $this->writeStreamTasks[$streamId];
+                unset($this->writeStreamTasks[$streamId]);
+                $writeStream->promise->resolve($stream);
+            }
+        }
+    }
+
+    private function createStreamTask($stream, array &$streamTasks)
+    {
+        $task = new class() {
+            public $stream;
+            public $promise;
+        };
+        $task->stream = $stream;
+        $task->promise = $this->promisePending();
+        $streamTasks[(int) $stream] = $task;
+
+        if (count($this->readStreamTasks) + count($this->writeStreamTasks) === 1) {
+            $this->async($this->streamsLoop());
+        }
+
+        return $task;
+    }
 
     private function createTask(\Generator $generator)
     {
