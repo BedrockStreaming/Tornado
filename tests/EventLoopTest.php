@@ -138,6 +138,55 @@ abstract class EventLoopTest extends TestCase
         $this->assertEquals([1, [2, 3], 4], $eventLoop->wait($promise));
     }
 
+    public function testYieldingForTheSameFulfilledPromise()
+    {
+        $eventLoop = $this->createEventLoop();
+        $commonPromise = $eventLoop->idle();
+
+        $createGenerator = function ($returnedValue) use ($commonPromise): \Generator {
+            yield $commonPromise;
+
+            return $returnedValue;
+        };
+
+        $promise = $eventLoop->promiseAll(
+            $eventLoop->async($createGenerator(1)),
+            $eventLoop->async($createGenerator(2))
+        );
+
+        $this->assertEquals(
+            [1, 2],
+            $eventLoop->wait($promise)
+        );
+    }
+
+    public function testYieldingForTheSameRejectededPromise()
+    {
+        $expectedMessage = 'Common Exception';
+        $eventLoop = $this->createEventLoop();
+        $commonPromise = $eventLoop->promiseRejected(new \Exception($expectedMessage));
+
+        $createGenerator = function () use ($commonPromise): \Generator {
+            try {
+                yield $commonPromise;
+            } catch (\Throwable $throwable) {
+                return $throwable->getMessage();
+            }
+
+            return 'No Exception';
+        };
+
+        $promise = $eventLoop->promiseAll(
+            $eventLoop->async($createGenerator()),
+            $eventLoop->async($createGenerator())
+        );
+
+        $this->assertEquals(
+            [$expectedMessage, $expectedMessage],
+            $eventLoop->wait($promise)
+        );
+    }
+
     public function testEventLoopFirstTick()
     {
         $eventLoop = $this->createEventLoop();

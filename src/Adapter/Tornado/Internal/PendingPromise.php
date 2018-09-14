@@ -11,11 +11,11 @@ class PendingPromise
     private $value;
     private $throwable;
     private $callbacks = [];
-    private $isLocked = false;
+    private $isSettled = false;
 
     public function resolve($value): self
     {
-        $this->lock();
+        $this->settle();
         $this->value = $value;
 
         return $this->triggerCallbacks();
@@ -23,42 +23,42 @@ class PendingPromise
 
     public function reject(\Throwable $throwable): self
     {
-        $this->lock();
+        $this->settle();
         $this->throwable = $throwable;
 
         return $this->triggerCallbacks();
     }
 
-    public function addCallbacks(callable $onSuccess, callable $onFailure): self
+    public function addCallbacks(callable $onResolved, callable $onRejected): self
     {
-        $this->callbacks[] = [$onSuccess, $onFailure];
+        $this->callbacks[] = [$onResolved, $onRejected];
 
-        return $this->triggerCallbacks();
+        return $this->isSettled ? $this->triggerCallbacks() : $this;
     }
 
     private function triggerCallbacks(): self
     {
-        if ($this->isLocked) {
-            if ($this->throwable !== null) {
-                foreach ($this->callbacks as [$onSuccess, $onFailure]) {
-                    $onFailure($this->throwable);
-                }
-            } else {
-                foreach ($this->callbacks as [$onSuccess, $onFailure]) {
-                    $onSuccess($this->value);
-                }
+        if ($this->throwable !== null) {
+            foreach ($this->callbacks as [, $onRejected]) {
+                $onRejected($this->throwable);
+            }
+        } else {
+            foreach ($this->callbacks as [$onResolved]) {
+                $onResolved($this->value);
             }
         }
+        // Callbacks must be triggered only once!
+        $this->callbacks = [];
 
         return $this;
     }
 
-    private function lock()
+    private function settle()
     {
-        if ($this->isLocked) {
+        if ($this->isSettled) {
             throw new \LogicException('Cannot resolve/reject a promise already settled.');
         }
 
-        $this->isLocked = true;
+        $this->isSettled = true;
     }
 }
