@@ -8,10 +8,32 @@ use M6Web\Tornado\Promise;
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
     /**
+     * @var Internal\StreamEventLoop
+     */
+    private $streamLoop;
+    private $tasks = [];
+
+    public function __construct()
+    {
+        $this->streamLoop = new Internal\StreamEventLoop();
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function wait(Promise $promise)
     {
+        $promiseIsPending = true;
+        $finalAction = function () {throw new \LogicException('Cannot resolve waited promise.'); };
+        $this->toPendingPromise($promise)->addCallbacks(
+            function ($value) use (&$finalAction) {
+                $finalAction = function () use ($value) {return $value; };
+            },
+            function (\Throwable $throwable) use (&$finalAction) {
+                $finalAction = function () use ($throwable) {throw $throwable; };
+            }
+        );
+
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
@@ -24,16 +46,32 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                         continue;
                     }
 
-                    $blockingPromise = $task->generator->current();
-                    $blockingPromise->sendValueToGenerator($task->generator);
-                    $this->tasks[] = $task;
+                    $blockingPromise = $this->toPendingPromise($task->generator->current());
+                    $blockingPromise->addCallbacks(
+                        function ($value) use ($task) {
+                            try {
+                                $task->generator->send($value);
+                                $this->tasks[] = $task;
+                            } catch (\Throwable $exception) {
+                                $task->promise->reject($exception);
+                            }
+                        },
+                        function (\Throwable $throwable) use ($task) {
+                            try {
+                                $task->generator->throw($throwable);
+                                $this->tasks[] = $task;
+                            } catch (\Throwable $exception) {
+                                $task->promise->reject($exception);
+                            }
+                        }
+                    );
                 } catch (\Throwable $exception) {
                     $task->promise->reject($exception);
                 }
             }
-        } while ($promise->isPending() && $this->tasks);
+        } while ($promiseIsPending && $this->tasks);
 
-        return $promise->getValue();
+        return $finalAction();
     }
 
     /**
@@ -41,9 +79,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $this->tasks[] = ($task = $this->createTask($generator));
+        $task = new class() {
+            public $generator;
+            public $promise;
+        };
+        $task->generator = $generator;
+        $task->promise = new Internal\PendingPromise();
+        $this->tasks[] = $task;
 
-        return $task->promise;
+        return $this->fromPendingPromise($task->promise);
     }
 
     /**
@@ -56,16 +100,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled([]);
         }
 
-        $globalPromise = $this->promisePending();
+        $globalPromise = new Internal\PendingPromise();
         $allResults = [];
 
         // To ensure that the last resolved promise resolves the global promise immediately
-        $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, $nbPromises, &$allResults): \Generator {
+        $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
             try {
                 $allResults[$index] = yield $promise;
             } catch (\Throwable $throwable) {
                 // Prevent to reject the globalPromise twice
-                if ($globalPromise->isPending()) {
+                if ($nbPromises > 0) {
+                    $nbPromises = -1;
                     $globalPromise->reject($throwable);
 
                     return;
@@ -81,7 +126,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->async($waitOnePromise($index, $promise));
         }
 
-        return $globalPromise;
+        return $this->fromPendingPromise($globalPromise);
     }
 
     /**
@@ -93,7 +138,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled(null);
         }
 
-        $globalPromise = $this->promisePending();
+        $globalPromise = new Internal\PendingPromise();
         $isFirstPromise = true;
 
         $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
@@ -115,7 +160,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->async($wrapPromise($promise));
         }
 
-        return $globalPromise;
+        return $this->fromPendingPromise($globalPromise);
     }
 
     /**
@@ -123,7 +168,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return $this->promisePending()->resolve($value);
+        return $this->fromPendingPromise((new Internal\PendingPromise())->resolve($value));
     }
 
     /**
@@ -131,7 +176,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        return $this->promisePending()->reject($throwable);
+        return $this->fromPendingPromise((new Internal\PendingPromise())->reject($throwable));
     }
 
     /**
@@ -139,7 +184,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        // Add an async function that resolve immediately
+        // Add an asynchronous function that resolve immediately
         return $this->async((function (): \Generator {
             return;
             yield;
@@ -151,30 +196,35 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function deferred(): Deferred
     {
-        // Encapsulate internal pending promise in (stricter) Deferred interface
-        return new class($this->promisePending()) implements Deferred {
-            private $promise;
-
-            public function __construct(Promise $promise)
-            {
-                $this->promise = $promise;
-            }
+        $deferred = new class() implements Deferred {
+            /**
+             * @var Internal\PendingPromise
+             */
+            public $internalPromise;
+            /**
+             * @var Promise
+             */
+            public $publicPromise;
 
             public function getPromise(): Promise
             {
-                return $this->promise;
+                return $this->publicPromise;
             }
 
             public function resolve($value)
             {
-                $this->promise->resolve($value);
+                $this->internalPromise->resolve($value);
             }
 
             public function reject(\Throwable $throwable)
             {
-                $this->promise->reject($throwable);
+                $this->internalPromise->reject($throwable);
             }
         };
+        $deferred->internalPromise = new Internal\PendingPromise();
+        $deferred->publicPromise = $this->fromPendingPromise($deferred->internalPromise);
+
+        return $deferred;
     }
 
     /**
@@ -182,9 +232,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function readable($stream): Promise
     {
-        $task = $this->readStreamTasks[(int) $stream] ?? $this->createStreamTask($stream, $this->readStreamTasks);
-
-        return $task->promise;
+        return $this->fromPendingPromise(
+            $this->streamLoop->readable($this, $stream)
+        );
     }
 
     /**
@@ -192,140 +242,23 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function writable($stream): Promise
     {
-        $task = $this->writeStreamTasks[(int) $stream] ?? $this->createStreamTask($stream, $this->writeStreamTasks);
-
-        return $task->promise;
+        return $this->fromPendingPromise(
+            $this->streamLoop->writable($this, $stream)
+        );
     }
 
-    // Tasks are composed of a generator to execute, and the promise of its result.
-    private $tasks = [];
-    private $readStreamTasks = [];
-    private $writeStreamTasks = [];
-
-    private function streamsLoop(): \Generator
+    private function fromPendingPromise(Internal\PendingPromise $pendingPromise): Promise
     {
-        $except = null;
-        while ($this->readStreamTasks || $this->writeStreamTasks) {
-            yield $this->idle();
-
-            $read = array_column($this->readStreamTasks, 'stream');
-            $write = array_column($this->writeStreamTasks, 'stream');
-            stream_select($read, $write, $except, 0);
-
-            foreach ($read as $stream) {
-                $streamId = (int) $stream;
-                $readStream = $this->readStreamTasks[$streamId];
-                unset($this->readStreamTasks[$streamId]);
-                $readStream->promise->resolve($stream);
-            }
-
-            foreach ($write as $stream) {
-                $streamId = (int) $stream;
-                $writeStream = $this->writeStreamTasks[$streamId];
-                unset($this->writeStreamTasks[$streamId]);
-                $writeStream->promise->resolve($stream);
-            }
-        }
-    }
-
-    private function createStreamTask($stream, array &$streamTasks)
-    {
-        $task = new class() {
-            public $stream;
-            public $promise;
+        $promise = new class() implements Promise {
+            public $pendingPromise;
         };
-        $task->stream = $stream;
-        $task->promise = $this->promisePending();
-        $streamTasks[(int) $stream] = $task;
+        $promise->pendingPromise = $pendingPromise;
 
-        if (count($this->readStreamTasks) + count($this->writeStreamTasks) === 1) {
-            $this->async($this->streamsLoop());
-        }
-
-        return $task;
+        return $promise;
     }
 
-    private function createTask(\Generator $generator)
+    private function toPendingPromise(Promise $promise): Internal\PendingPromise
     {
-        $task = new class() {
-            public $generator;
-            public $promise;
-        };
-        $task->generator = $generator;
-        $task->promise = $this->promisePending();
-
-        return $task;
-    }
-
-    private function promisePending(): Promise
-    {
-        return new class() implements Promise {
-            private const PENDING = 1;
-            private const FULFILLED = 2;
-            private const REJECTED = 3;
-
-            private $value;
-            private $state = self::PENDING;
-
-            public function isPending(): bool
-            {
-                return $this->state === self::PENDING;
-            }
-
-            public function resolve($value): Promise
-            {
-                if ($this->state !== self::PENDING) {
-                    throw new \LogicException('Cannot resolve a non pending promise.');
-                }
-                $this->value = $value;
-                $this->state = self::FULFILLED;
-
-                return $this;
-            }
-
-            public function reject(\Throwable $throwable): Promise
-            {
-                if ($this->state !== self::PENDING) {
-                    throw new \LogicException('Cannot reject a non pending promise.');
-                }
-                $this->value = $throwable;
-                $this->state = self::REJECTED;
-
-                return $this;
-            }
-
-            /**
-             * Sends promise value to the generator according to its internal state.
-             */
-            public function sendValueToGenerator(\Generator $generator): void
-            {
-                switch ($this->state) {
-                    case self::FULFILLED:
-                        $generator->send($this->value);
-                        break;
-                    case self::REJECTED:
-                        $generator->throw($this->value);
-                        break;
-                    default:
-                }
-            }
-
-            /**
-             * Throws an exception if the promise is not fulfilled.
-             */
-            public function getValue()
-            {
-                switch ($this->state) {
-                    case self::FULFILLED:
-                        return $this->value;
-                        break;
-                    case self::REJECTED:
-                        throw $this->value;
-                        break;
-                    default:
-                        throw new \Exception('Cannot resolve promise.');
-                }
-            }
-        };
+        return $promise->pendingPromise;
     }
 }
