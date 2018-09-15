@@ -223,6 +223,23 @@ abstract class EventLoopTest extends TestCase
         $this->assertSame($expectedSequence, $outputBuffer);
     }
 
+    public function testDelay()
+    {
+        $expectedDelay = 42; /*ms*/
+        $eventLoop = $this->createEventLoop();
+
+        $promise = $eventLoop->delay($expectedDelay);
+        $start = microtime(true);
+        $result = $eventLoop->wait($promise);
+        $duration = (microtime(true) - $start) * 1000;
+
+        $this->assertSame(null, $result);
+        // Can be a little sooner
+        $this->assertGreaterThanOrEqual($expectedDelay - 5, $duration);
+        // In these conditions, we should be very close of the expected delay
+        $this->assertLessThanOrEqual($expectedDelay + 10, $duration);
+    }
+
     public function testDeferredResolved()
     {
         $expectedValue = 'Caramba!';

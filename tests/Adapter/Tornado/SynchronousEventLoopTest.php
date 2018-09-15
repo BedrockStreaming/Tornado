@@ -35,4 +35,22 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         // Never wait…
         parent::testStreamShouldReadFromWritable('W0W12345W6R01R23R45R6R');
     }
+
+    public function testDelay()
+    {
+        $expectedDelay = 42; /*ms*/
+        $eventLoop = $this->createEventLoop();
+
+        // For synchronous event loop, the delay is applied as soon as requested!
+        $start = microtime(true);
+        $promise = $eventLoop->delay($expectedDelay);
+        $duration = (microtime(true) - $start) * 1000;
+        $result = $eventLoop->wait($promise);
+
+        $this->assertSame(null, $result);
+        // Can be a little sooner
+        $this->assertGreaterThanOrEqual($expectedDelay - 5, $duration);
+        // In these conditions, we should be close of the expected delay
+        $this->assertLessThanOrEqual($expectedDelay + 10, $duration);
+    }
 }

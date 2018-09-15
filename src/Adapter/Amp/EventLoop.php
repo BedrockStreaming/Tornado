@@ -128,6 +128,20 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function delay(int $milliseconds): Promise
+    {
+        $deferred = new \Amp\Deferred();
+
+        \Amp\Loop::delay($milliseconds, function () use ($deferred) {
+            $deferred->resolve();
+        });
+
+        return self::fromAmpPromise($deferred->promise());
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function deferred(): Deferred
     {
         $deferred = new class() implements Deferred {
