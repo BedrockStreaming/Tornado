@@ -114,6 +114,16 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function delay(int $milliseconds): Promise
+    {
+        usleep($milliseconds * 1000 /* microseconds in 1 millisecond */);
+
+        return $this->promiseFulfilled(null);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function deferred(): Deferred
     {
         $deferred = new class() implements Deferred {

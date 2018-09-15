@@ -44,6 +44,13 @@ interface EventLoop
     public function idle(): Promise;
 
     /**
+     * Creates a promise that will be resolved to null after a fixed time.
+     * ⚠️ The actual measured delay can be greater if your event loop is busy!
+     * It also can be a little smaller, depending on your event loop (or system clock) accuracy.
+     */
+    public function delay(int $milliseconds): Promise;
+
+    /**
      * Creates a deferred, allowing to create and resolve your own promises.
      */
     public function deferred(): Deferred;

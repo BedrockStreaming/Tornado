@@ -149,6 +149,22 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function delay(int $milliseconds): Promise
+    {
+        $deferred = $this->deferred();
+        $this->reactEventLoop->addTimer(
+            $milliseconds / 1000 /* milliseconds per second */,
+            function () use ($deferred) {
+                $deferred->resolve(null);
+            }
+        );
+
+        return $deferred->getPromise();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function deferred(): Deferred
     {
         $deferred = new class() implements Deferred {

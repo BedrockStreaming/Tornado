@@ -194,6 +194,20 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function delay(int $milliseconds): Promise
+    {
+        $endTime = microtime(true) + $milliseconds / 1000 /* milliseconds in 1 second */;
+
+        return $this->async((function () use ($endTime): \Generator {
+            while (microtime(true) < $endTime) {
+                yield $this->idle();
+            }
+        })());
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function deferred(): Deferred
     {
         $deferred = new class() implements Deferred {
