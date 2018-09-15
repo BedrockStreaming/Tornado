@@ -23,7 +23,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->promiseFulfilled($expectedValue);
 
-        $this->assertEquals(
+        $this->assertSame(
             $expectedValue,
             $eventLoop->wait($promise)
         );
@@ -52,7 +52,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->async($generator);
 
-        $this->assertEquals(
+        $this->assertSame(
             $expectedValue,
             $eventLoop->wait($promise)
         );
@@ -88,7 +88,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->async($createGenerator($eventLoop, 'A', 'B', 'C'));
 
-        $this->assertEquals('ABC', $eventLoop->wait($promise));
+        $this->assertSame('ABC', $eventLoop->wait($promise));
     }
 
     public function testYieldingGeneratorWithRejectedPromise()
@@ -106,7 +106,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->async($createGenerator($eventLoop, $expectedException));
 
-        $this->assertEquals(
+        $this->assertSame(
             $expectedException,
             $eventLoop->wait($promise)
         );
@@ -135,7 +135,7 @@ abstract class EventLoopTest extends TestCase
             )
         );
 
-        $this->assertEquals([1, [2, 3], 4], $eventLoop->wait($promise));
+        $this->assertSame([1, [2, 3], 4], $eventLoop->wait($promise));
     }
 
     public function testYieldingForTheSameFulfilledPromise()
@@ -154,7 +154,7 @@ abstract class EventLoopTest extends TestCase
             $eventLoop->async($createGenerator(2))
         );
 
-        $this->assertEquals(
+        $this->assertSame(
             [1, 2],
             $eventLoop->wait($promise)
         );
@@ -181,7 +181,7 @@ abstract class EventLoopTest extends TestCase
             $eventLoop->async($createGenerator())
         );
 
-        $this->assertEquals(
+        $this->assertSame(
             [$expectedMessage, $expectedMessage],
             $eventLoop->wait($promise)
         );
@@ -199,7 +199,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop->async($oneStepGenerator($eventLoop, $count));
         $eventLoop->wait($eventLoop->promiseFulfilled(null));
 
-        $this->assertEquals(1, $count);
+        $this->assertSame(1, $count);
     }
 
     public function testIdle($expectedSequence = 'ABCABA')
@@ -219,8 +219,8 @@ abstract class EventLoopTest extends TestCase
             $eventLoop->async($createIdleGenerator('C', 1))
         );
 
-        $this->assertEquals([null, null, null], $eventLoop->wait($promise));
-        $this->assertEquals($expectedSequence, $outputBuffer);
+        $this->assertSame([null, null, null], $eventLoop->wait($promise));
+        $this->assertSame($expectedSequence, $outputBuffer);
     }
 
     public function testDeferredResolved()
@@ -241,7 +241,7 @@ abstract class EventLoopTest extends TestCase
         };
 
         $eventLoop->async($resolverGenerator($eventLoop, $deferred));
-        $this->assertEquals(
+        $this->assertSame(
             $expectedValue,
             $eventLoop->wait(
                 $eventLoop->async(

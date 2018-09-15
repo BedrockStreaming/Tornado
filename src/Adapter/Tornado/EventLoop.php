@@ -101,7 +101,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         }
 
         $globalPromise = new Internal\PendingPromise();
-        $allResults = [];
+        $allResults = array_fill(0, $nbPromises, false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
         $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
@@ -117,7 +117,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 }
             }
             // Last resolved promise resolved globalPromise
-            if ($nbPromises === count($allResults)) {
+            if (--$nbPromises === 0) {
                 $globalPromise->resolve($allResults);
             }
         };

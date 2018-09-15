@@ -16,7 +16,7 @@ trait PromiseAllTest
         $promises = array_map([$eventLoop, 'promiseFulfilled'], $expectedValues);
         $promise = $eventLoop->promiseAll(...$promises);
 
-        $this->assertEquals(
+        $this->assertSame(
             $expectedValues,
             $eventLoop->wait($promise)
         );
@@ -44,7 +44,7 @@ trait PromiseAllTest
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->promiseAll();
 
-        $this->assertEquals(
+        $this->assertSame(
             [],
             $eventLoop->wait($promise)
         );
@@ -53,23 +53,23 @@ trait PromiseAllTest
     public function testPromiseAllShouldPreserveTheOrderOfArrayWhenResolvingAsyncPromises()
     {
         $eventLoop = $this->createEventLoop();
-        $deferred = $eventLoop->deferred();
 
-        $eventLoop->async((function () use ($deferred, $eventLoop) {
+        $promise2 = $eventLoop->async((function () use ($eventLoop) {
             // Wait some ticks before to resolve the promise
             yield $eventLoop->idle();
             yield $eventLoop->idle();
-            $deferred->resolve(2);
+
+            return 2;
         })()
         );
 
         $promise = $eventLoop->promiseAll(
             $eventLoop->promiseFulfilled(1),
-            $deferred->getPromise(),
+            $promise2,
             $eventLoop->promiseFulfilled(3)
         );
 
-        $this->assertEquals(
+        $this->assertSame(
             [1, 2, 3],
             $eventLoop->wait($promise)
         );

@@ -14,7 +14,7 @@ trait PromiseRaceTest
 
         $promise = $eventLoop->promiseRace();
 
-        $this->assertEquals(
+        $this->assertSame(
             null,
             $eventLoop->wait($promise)
         );
@@ -48,7 +48,7 @@ trait PromiseRaceTest
             $d3->getPromise()
         );
 
-        $this->assertEquals(
+        $this->assertSame(
             $expectedValue,
             $eventLoop->wait($promise)
         );

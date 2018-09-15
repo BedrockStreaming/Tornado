@@ -36,7 +36,7 @@ abstract class HttpClientTest extends TestCase
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
-        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertContains('Example Domain', (string) $response->getBody());
         $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
@@ -55,7 +55,7 @@ abstract class HttpClientTest extends TestCase
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
-        $this->assertEquals(404, $response->getStatusCode());
+        $this->assertSame(404, $response->getStatusCode());
         $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
 
@@ -91,11 +91,11 @@ abstract class HttpClientTest extends TestCase
         $request = new Request('GET', 'http://www.example.com');
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
-        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertContains('Example Domain', (string) $response->getBody());
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
-        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertContains('Example Domain', (string) $response->getBody());
         $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
@@ -120,7 +120,7 @@ abstract class HttpClientTest extends TestCase
             return $response->getStatusCode();
         };
 
-        $this->assertEquals(
+        $this->assertSame(
             [404, 200, 200, 404],
             $eventLoop->wait(
                 $eventLoop->promiseAll(
