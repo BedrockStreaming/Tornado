@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-include __DIR__.'/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use M6Web\Tornado\Adapter;
 use M6Web\Tornado\EventLoop;
@@ -50,3 +50,4 @@ try {
 } catch (\Exception $exception) {
     echo "Exception caught: {$exception->getMessage()}\n";
 }
+echo "Finished!\n";
