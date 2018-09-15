@@ -40,8 +40,10 @@ class HttpClient implements \M6Web\Tornado\HttpClient
                 $deferred->resolve($response);
                 $this->nbConcurrentRequests--;
             },
-            function (RequestException $exception) use ($deferred) {
-                if ($exception->getResponse()) {
+            function (\Exception $exception) use ($deferred) {
+                // Guzzle may throw an exception with a valid response.
+                // We handle them as a success.
+                if ($exception instanceof RequestException && $exception->getResponse()) {
                     $deferred->resolve($exception->getResponse());
                 } else {
                     $deferred->reject($exception);
