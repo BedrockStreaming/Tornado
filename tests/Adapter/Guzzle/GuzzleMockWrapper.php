@@ -28,8 +28,6 @@ final class GuzzleMockWrapper implements GuzzleClientWrapper
 
         $mockHandler = new \GuzzleHttp\Handler\MockHandler($queue);
         $stack = \GuzzleHttp\HandlerStack::create($mockHandler);
-        $history = \GuzzleHttp\Middleware::history($this->transactions);
-        $stack->push($history);
         $this->guzzleClient = new \GuzzleHttp\Client([
             'handler' => $stack,
         ]);
@@ -38,11 +36,6 @@ final class GuzzleMockWrapper implements GuzzleClientWrapper
     public function getClient(): \GuzzleHttp\ClientInterface
     {
         return $this->guzzleClient;
-    }
-
-    public function getTransactions(): array
-    {
-        return $this->transactions;
     }
 
     public function tick(): void

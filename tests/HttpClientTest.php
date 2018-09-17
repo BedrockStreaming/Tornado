@@ -2,18 +2,21 @@
 
 namespace M6WebTest\Tornado;
 
-use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
-use M6WebTest\Tornado\Adapter\Guzzle\GuzzleMockWrapper;
 use PHPUnit\Framework\TestCase;
 
 abstract class HttpClientTest extends TestCase
 {
-    abstract protected function createHttpClient(EventLoop $eventLoop, GuzzleClientWrapper $wrapper): HttpClient;
+    /**
+     * @param EventLoop $eventLoop
+     * @param array     $responsesOrExceptions Psr7\Response to return, or \Exception to throw
+     *
+     * @return HttpClient
+     */
+    abstract protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): HttpClient;
 
     public function eventLoopProvider()
     {
@@ -28,17 +31,16 @@ abstract class HttpClientTest extends TestCase
      */
     public function testGetValidUrl(EventLoop $eventLoop)
     {
-        $wrapper = new GuzzleMockWrapper([
-            new Response(200, [], 'Example Domain'),
-        ]);
-        $httpClient = $this->createHttpClient($eventLoop, $wrapper);
+        $httpClient = $this->createHttpClient(
+            $eventLoop,
+            [new Response(200, [], 'Example Domain')]
+        );
         $request = new Request('GET', 'http://www.example.com');
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertContains('Example Domain', (string) $response->getBody());
-        $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
 
     /**
@@ -46,17 +48,16 @@ abstract class HttpClientTest extends TestCase
      */
     public function testGetNotFoundUrl(EventLoop $eventLoop)
     {
-        $wrapper = new GuzzleMockWrapper([
-            new Response(404),
-        ]);
-        $httpClient = $this->createHttpClient($eventLoop, $wrapper);
+        $httpClient = $this->createHttpClient(
+            $eventLoop,
+            [new Response(404)]
+        );
 
         $request = new Request('GET', 'http://www.example.com/404');
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
         $this->assertSame(404, $response->getStatusCode());
-        $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
 
     /**
@@ -64,17 +65,16 @@ abstract class HttpClientTest extends TestCase
      */
     public function testInvalidUrl(EventLoop $eventLoop)
     {
-        $wrapper = new GuzzleMockWrapper([
-            new RequestException('Error Communicating with Server', new Request('GET', 'this is not a valid url')),
-        ]);
-        $httpClient = $this->createHttpClient($eventLoop, $wrapper);
+        $httpClient = $this->createHttpClient(
+            $eventLoop,
+            [new \Exception('Error Communicating with Server')]
+        );
 
         $request = new Request('GET', 'this is not a valid url');
         $promise = $httpClient->sendRequest($request);
 
         $this->expectException(\Exception::class);
         $eventLoop->wait($promise);
-        $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
 
     /**
@@ -82,11 +82,13 @@ abstract class HttpClientTest extends TestCase
      */
     public function testSynchronousRequests(EventLoop $eventLoop)
     {
-        $wrapper = new GuzzleMockWrapper([
-            new Response(200, [], 'Example Domain'),
-            new Response(200, [], 'Example Domain'),
-        ]);
-        $httpClient = $this->createHttpClient($eventLoop, $wrapper);
+        $httpClient = $this->createHttpClient(
+            $eventLoop,
+            [
+                new Response(200, [], 'Example Domain'),
+                new Response(200, [], 'Example Domain'),
+            ]
+        );
 
         $request = new Request('GET', 'http://www.example.com');
 
@@ -97,7 +99,6 @@ abstract class HttpClientTest extends TestCase
         $response = $eventLoop->wait($httpClient->sendRequest($request));
         $this->assertSame(200, $response->getStatusCode());
         $this->assertContains('Example Domain', (string) $response->getBody());
-        $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
 
     /**
@@ -105,13 +106,15 @@ abstract class HttpClientTest extends TestCase
      */
     public function testAsynchronousRequests(EventLoop $eventLoop)
     {
-        $wrapper = new GuzzleMockWrapper([
-            new Response(404),
-            new Response(200, [], 'Example Domain'),
-            new Response(200, [], 'Example Domain'),
-            new Response(404),
-        ]);
-        $httpClient = $this->createHttpClient($eventLoop, $wrapper);
+        $httpClient = $this->createHttpClient(
+            $eventLoop,
+            [
+                new Response(404),
+                new Response(200, [], 'Example Domain'),
+                new Response(200, [], 'Example Domain'),
+                new Response(404),
+            ]
+        );
 
         $getStatusCode = function (string $url) use ($httpClient): \Generator {
             $request = new Request('GET', $url);
@@ -131,6 +134,5 @@ abstract class HttpClientTest extends TestCase
                 )
             )
         );
-        $this->assertGreaterThanOrEqual(1, $wrapper->ticks);
     }
 }
