@@ -183,4 +183,43 @@ trait AsyncTest
 
         $this->assertSame(1, $count);
     }
+
+    public function testEventLoopShouldThrowInCaseOfUncaughtExceptionInBackgroundGenerator()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $failingGenerator = function () use ($eventLoop) {
+            yield $eventLoop->idle();
+            throw new \Exception('This is a failure');
+        };
+
+        $waitingGenerator = function () use ($eventLoop) {
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+        };
+
+        $ignoredBackgroundPromise = $eventLoop->async($failingGenerator());
+        $promiseSuccess = $eventLoop->async($waitingGenerator());
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('This is a failure');
+        $eventLoop->wait($promiseSuccess);
+    }
+
+    public function testEventLoopShouldNotThrowInCaseOfExplicitlyRejectedPromise()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $generatorWaitALittle = function () use ($eventLoop) {
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+        };
+
+        $unwatchedRejectedPromise = $eventLoop->promiseRejected(new \Exception('Rejected Promise'));
+        $unwatchedDeferred = $eventLoop->deferred();
+        $unwatchedDeferred->reject(new \Exception('Rejected Deferred'));
+
+        $this->assertSame(null, $eventLoop->wait($eventLoop->async($generatorWaitALittle())));
+    }
 }
