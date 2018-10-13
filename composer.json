@@ -31,6 +31,12 @@
         "react/event-loop": "^1.0",
         "react/promise": "^2.7"
     },
+    "suggest": {
+        "amphp/amp": "Needed to use Tornado\\Adapter\\Amp\\EventLoop",
+        "react/event-loop": "Needed to use Tornado\\Adapter\\ReactPhp\\EventLoop",
+        "react/promise": "Needed to use Tornado\\Adapter\\ReactPhp\\EventLoop",
+        "guzzlehttp/guzzle": "Needed to use Tornado\\Adapter\\Guzzle\\HttpClient"
+    },
     "config": {
         "bin-dir": "bin/"
     }
