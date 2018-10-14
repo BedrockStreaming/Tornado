@@ -29,7 +29,8 @@
         "m6web/php-cs-fixer-config": "^1.0",
         "ext-curl": "^7.1",
         "react/event-loop": "^1.0",
-        "react/promise": "^2.7"
+        "react/promise": "^2.7",
+        "phpstan/phpstan": "dev-master"
     },
     "suggest": {
         "amphp/amp": "Needed to use Tornado\\Adapter\\Amp\\EventLoop",
@@ -39,5 +40,9 @@
     },
     "config": {
         "bin-dir": "bin/"
+    },
+    "scripts": {
+        "phpunit": "./bin/phpunit",
+        "phpstan": "./bin/phpstan analyse src tests --level=3 --no-progress -vvv"
     }
 }

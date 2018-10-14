@@ -3,4 +3,12 @@ php:
   - '7.1'
   - '7.2'
 
-install: composer install
+before_script:
+  - phpenv config-rm xdebug.ini
+  - composer install
+
+env:
+  - TASK=phpunit
+  - TASK=phpstan
+
+script: "composer $TASK"
