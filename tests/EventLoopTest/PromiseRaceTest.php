@@ -62,7 +62,7 @@ trait PromiseRaceTest
         $d3 = $eventLoop->deferred();
 
         // $d2 will be rejected first
-        $eventLoop->async((function () use ($d1, $d2, $d3, $expectedValue, $eventLoop) {
+        $eventLoop->async((function () use ($d1, $d2, $d3, $eventLoop) {
             // Wait some ticks before to resolve the promise
             yield $eventLoop->idle();
             yield $eventLoop->idle();
