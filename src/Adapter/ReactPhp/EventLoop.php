@@ -78,15 +78,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                         return $this->deferred->resolve($this->generator->getReturn());
                     }
                     $blockingPromise = $this->generator->current();
-                    self::toReactPromise($blockingPromise)->then([$this, 'onFulfilled'], [$this, 'onRejected']);
+                    Internal\PromiseWrapper::fromPromise($blockingPromise)->getReactPromise()
+                        ->then([$this, 'onFulfilled'], [$this, 'onRejected']);
                 } catch (\Throwable $throwable) {
                     $this->deferred->reject($throwable);
                 }
-            }
-
-            private static function toReactPromise(Promise $promise): \React\Promise\PromiseInterface
-            {
-                return $promise->reactPromise;
             }
         };
 
@@ -228,16 +224,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private static function fromReactPromise(\React\Promise\PromiseInterface $reactPromise): Promise
     {
-        $promise = new class() implements Promise {
-            public $reactPromise;
-        };
-        $promise->reactPromise = $reactPromise;
-
-        return $promise;
+        return new Internal\PromiseWrapper($reactPromise);
     }
 
     private static function toReactPromise(Promise $promise): \React\Promise\PromiseInterface
     {
-        return $promise->reactPromise;
+        return Internal\PromiseWrapper::fromPromise($promise)->getReactPromise();
     }
 }

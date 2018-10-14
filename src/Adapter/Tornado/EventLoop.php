@@ -87,7 +87,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $task->promise = new Internal\PendingPromise();
         $this->tasks[] = $task;
 
-        return $this->fromPendingPromise($task->promise);
+        return $task->promise;
     }
 
     /**
@@ -126,7 +126,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->async($waitOnePromise($index, $promise));
         }
 
-        return $this->fromPendingPromise($globalPromise);
+        return $globalPromise;
     }
 
     /**
@@ -160,7 +160,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->async($wrapPromise($promise));
         }
 
-        return $this->fromPendingPromise($globalPromise);
+        return $globalPromise;
     }
 
     /**
@@ -168,7 +168,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return $this->fromPendingPromise((new Internal\PendingPromise())->resolve($value));
+        return (new Internal\PendingPromise())->resolve($value);
     }
 
     /**
@@ -176,7 +176,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        return $this->fromPendingPromise((new Internal\PendingPromise())->reject($throwable));
+        return (new Internal\PendingPromise())->reject($throwable);
     }
 
     /**
@@ -236,7 +236,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
         $deferred->internalPromise = new Internal\PendingPromise();
-        $deferred->publicPromise = $this->fromPendingPromise($deferred->internalPromise);
+        $deferred->publicPromise = $deferred->internalPromise;
 
         return $deferred;
     }
@@ -246,9 +246,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function readable($stream): Promise
     {
-        return $this->fromPendingPromise(
-            $this->streamLoop->readable($this, $stream)
-        );
+        return $this->streamLoop->readable($this, $stream);
     }
 
     /**
@@ -256,23 +254,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function writable($stream): Promise
     {
-        return $this->fromPendingPromise(
-            $this->streamLoop->writable($this, $stream)
-        );
-    }
-
-    private function fromPendingPromise(Internal\PendingPromise $pendingPromise): Promise
-    {
-        $promise = new class() implements Promise {
-            public $pendingPromise;
-        };
-        $promise->pendingPromise = $pendingPromise;
-
-        return $promise;
+        return $this->streamLoop->writable($this, $stream);
     }
 
     private function toPendingPromise(Promise $promise): Internal\PendingPromise
     {
-        return $promise->pendingPromise;
+        assert($promise instanceof Internal\PendingPromise);
+
+        return $promise;
     }
 }

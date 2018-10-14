@@ -83,7 +83,7 @@ trait AsyncTest
     public function testSubGenerators()
     {
         $eventLoop = $this->createEventLoop();
-        $createGenerator = function (Promise ...$promises) use ($eventLoop): \Generator {
+        $createGenerator = function (Promise ...$promises): \Generator {
             $result = [];
             foreach ($promises as $promise) {
                 $result[] = yield $promise;
