@@ -259,6 +259,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function toPendingPromise(Promise $promise): Internal\PendingPromise
     {
+        assert($promise instanceof Internal\PendingPromise);
+
         return $promise;
     }
 }

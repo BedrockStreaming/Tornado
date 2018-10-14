@@ -22,6 +22,8 @@ class PromiseWrapper implements Promise
 
     public static function fromPromise(Promise $promise): self
     {
+        assert($promise instanceof self);
+
         return $promise;
     }
 
