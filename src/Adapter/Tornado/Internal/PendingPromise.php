@@ -2,11 +2,13 @@
 
 namespace M6Web\Tornado\Adapter\Tornado\Internal;
 
+use M6Web\Tornado\Promise;
+
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
  */
-class PendingPromise
+class PendingPromise implements Promise
 {
     private $value;
     private $throwable;

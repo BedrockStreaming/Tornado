@@ -58,7 +58,7 @@ interface EventLoop
     /**
      * Returns a promise that will be resolved with the input stream when it becomes readable.
      *
-     * @param $stream
+     * @param resource $stream
      *
      * @return Promise
      */
@@ -67,7 +67,7 @@ interface EventLoop
     /**
      * Returns a promise that will be resolved with the input stream when it becomes writable.
      *
-     * @param $stream
+     * @param resource $stream
      *
      * @return Promise
      */
