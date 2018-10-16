@@ -133,7 +133,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
             public function getPromise(): Promise
             {
                 if (!$this->promise) {
-                    throw new \LogicException('Synchronous Deferred must be resolved/rejected before to retrieve its promise.');
+                    throw new \Error('Synchronous Deferred must be resolved/rejected before to retrieve its promise.');
                 }
 
                 return $this->promise;

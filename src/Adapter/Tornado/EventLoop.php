@@ -24,12 +24,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         $promiseIsPending = true;
-        $finalAction = function () {throw new \LogicException('Cannot resolve waited promise.'); };
+        $finalAction = function () {throw new \Error('Impossible to resolve the promise, no more task to execute..'); };
         $this->toPendingPromise($promise)->addCallbacks(
-            function ($value) use (&$finalAction) {
+            function ($value) use (&$finalAction, &$promiseIsPending) {
+                $promiseIsPending = false;
                 $finalAction = function () use ($value) {return $value; };
             },
-            function (\Throwable $throwable) use (&$finalAction) {
+            function (\Throwable $throwable) use (&$finalAction, &$promiseIsPending) {
+                $promiseIsPending = false;
                 $finalAction = function () use ($throwable) {throw $throwable; };
             }
         );
