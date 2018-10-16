@@ -42,6 +42,20 @@ trait AsyncTest
         $eventLoop->wait($promise);
     }
 
+    public function testYieldingInvalidValueMayThrowAnError()
+    {
+        $createGenerator = function (): \Generator {
+            yield 'Something that is not a promise.';
+        };
+
+        $eventLoop = $this->createEventLoop();
+        $promise = $eventLoop->async($createGenerator());
+
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Asynchronous function is yielding a [string] instead of a Promise.');
+        $eventLoop->wait($promise);
+    }
+
     public function testYieldingGenerator()
     {
         $createGenerator = function (EventLoop $eventLoop, $a, $b, $c): \Generator {
