@@ -42,8 +42,10 @@
         "bin-dir": "bin/"
     },
     "scripts": {
-        "phpunit-unit": "./bin/phpunit --testsuite='Tornado Test Suite'",
-        "phpunit-examples": "./bin/phpunit --testsuite='Tornado Examples'",
-        "phpstan": "./bin/phpstan analyse src tests --level=3 --no-progress -vvv"
+        "tests-unit": "./bin/phpunit --testsuite='Tornado Test Suite'",
+        "tests-examples": "./bin/phpunit --testsuite='Tornado Examples'",
+        "static-analysis": "./bin/phpstan analyse src tests --level=3 --no-progress -vvv",
+        "code-style-check": "./bin/php-cs-fixer fix --dry-run --verbose",
+        "code-style-fix": "./bin/php-cs-fixer fix"
     }
 }

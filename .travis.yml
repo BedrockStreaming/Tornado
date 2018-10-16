@@ -8,8 +8,8 @@ before_script:
   - composer install
 
 env:
-  - TASK=phpunit-unit
-  - TASK=phpunit-examples
-  - TASK=phpstan
+  - TASK=tests-unit
+  - TASK=tests-examples
+  - TASK=static-analysis
 
 script: "composer $TASK"

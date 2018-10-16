@@ -197,3 +197,30 @@ function waitException(Tornado\EventLoop $eventLoop)
 No, even if these two libraries deal with asynchronous programming,
 they are absolutely not related.
 The name *Tornado* has been chosen in reference to the [horse ridden by Zorro](https://en.wikipedia.org/wiki/Tornado_%28horse%29).
+
+## Contributing
+
+Running unit tests:
+```bash
+composer tests-unit
+```
+
+Running examples:
+```bash
+composer tests-examples
+```
+
+Running PhpStan (static analysis):
+```bash
+composer static-analysis
+```
+
+Check code style:
+```bash
+composer code-style-check
+```
+
+Fix code style:
+```bash
+composer code-style-fix
+```
