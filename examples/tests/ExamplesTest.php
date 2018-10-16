@@ -10,11 +10,15 @@ class ExamplesTest extends TestCase
     {
         $iterator = new \FilesystemIterator(
             __DIR__.'/../',
-            \FilesystemIterator::CURRENT_AS_PATHNAME | \FilesystemIterator::KEY_AS_FILENAME | \FilesystemIterator::SKIP_DOTS
+            \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::KEY_AS_FILENAME | \FilesystemIterator::SKIP_DOTS
         );
 
-        foreach ($iterator as $name => $path) {
-            yield $name => [$path];
+        foreach ($iterator as $name => $fileinfo) {
+            if ($fileinfo->isDir()) {
+                continue;
+            }
+
+            yield $name => [$fileinfo->getRealPath()];
         }
     }
 
