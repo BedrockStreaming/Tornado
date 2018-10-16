@@ -21,18 +21,28 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $value = null;
         $isRejected = false;
+        $promiseSettled = false;
         self::toReactPromise($promise)->then(
-            function ($result) use (&$value) {
+            function ($result) use (&$value, &$promiseSettled) {
+                $promiseSettled = true;
                 $value = $result;
                 $this->reactEventLoop->stop();
             },
-            function ($result) use (&$value, &$isRejected) {
+            function ($result) use (&$value, &$isRejected, &$promiseSettled) {
+                $promiseSettled = true;
                 $value = $result;
                 $isRejected = true;
                 $this->reactEventLoop->stop();
             }
         );
-        $this->reactEventLoop->run();
+
+        if (!$promiseSettled) {
+            $this->reactEventLoop->run();
+        }
+
+        if (!$promiseSettled) {
+            throw new \Error('Impossible to resolve the promise, no more task to execute.');
+        }
 
         if ($isRejected) {
             /* @var $value \Exception */

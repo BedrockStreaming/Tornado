@@ -12,7 +12,20 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function wait(Promise $promise)
     {
-        return \Amp\Promise\wait(self::toAmpPromise($promise));
+        try {
+            return \Amp\Promise\wait(self::toAmpPromise($promise));
+        } catch (\Error $error) {
+            // Modify exceptions sent by Amp itself
+            if ($error->getCode() !== 0) {
+                throw $error;
+            }
+            switch ($error->getMessage()) {
+                case 'Loop stopped without resolving the promise':
+                    throw new \Error('Impossible to resolve the promise, no more task to execute.', 0, $error);
+                default:
+                    throw $error;
+            }
+        }
     }
 
     /**

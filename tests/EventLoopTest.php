@@ -132,4 +132,31 @@ abstract class EventLoopTest extends TestCase
         $this->expectException(get_class($expectedException));
         $eventLoop->wait($promise);
     }
+
+    public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved()
+    {
+        $eventLoop = $this->createEventLoop();
+        $count = 0;
+        $unfinishedGenerator = function (EventLoop $eventLoop, int &$count): \Generator {
+            while (++$count < 10) {
+                yield $eventLoop->idle();
+            }
+        };
+
+        $eventLoop->async($unfinishedGenerator($eventLoop, $count));
+        $result = $eventLoop->wait($eventLoop->promiseFulfilled('value'));
+
+        $this->assertSame('value', $result);
+        $this->assertLessThanOrEqual(2, $count);
+    }
+
+    public function testWaitFunctionShouldThrowIfPromiseCannotBeResolved()
+    {
+        $eventLoop = $this->createEventLoop();
+        $deferred = $eventLoop->deferred();
+
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Impossible to resolve the promise, no more task to execute.');
+        $eventLoop->wait($deferred->getPromise());
+    }
 }

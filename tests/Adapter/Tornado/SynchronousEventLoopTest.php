@@ -53,4 +53,21 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         // In these conditions, we should be close of the expected delay
         $this->assertLessThanOrEqual($expectedDelay + 10, $duration);
     }
+
+    public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved()
+    {
+        // By definition, synchronous event loop can only wait a promise if already resolved.
+        // So this use case is not relevant for this particular implementation.
+        $this->assertTrue(true);
+    }
+
+    public function testWaitFunctionShouldThrowIfPromiseCannotBeResolved()
+    {
+        $eventLoop = $this->createEventLoop();
+        $deferred = $eventLoop->deferred();
+
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Synchronous Deferred must be resolved/rejected before to retrieve its promise.');
+        $eventLoop->wait($deferred->getPromise());
+    }
 }
