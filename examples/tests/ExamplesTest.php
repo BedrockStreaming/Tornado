@@ -1,6 +1,6 @@
 <?php
 
-namespace M6WebTest\Tornado;
+namespace M6WebExamplesTest\Tornado;
 
 use PHPUnit\Framework\TestCase;
 
@@ -9,12 +9,16 @@ class ExamplesTest extends TestCase
     public function examplesProvider()
     {
         $iterator = new \FilesystemIterator(
-            __DIR__.'/../examples',
-            \FilesystemIterator::CURRENT_AS_PATHNAME | \FilesystemIterator::KEY_AS_FILENAME | \FilesystemIterator::SKIP_DOTS
+            __DIR__.'/../',
+            \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::KEY_AS_FILENAME | \FilesystemIterator::SKIP_DOTS
         );
 
-        foreach ($iterator as $name => $path) {
-            yield $name => [$path];
+        foreach ($iterator as $name => $fileinfo) {
+            if ($fileinfo->isDir()) {
+                continue;
+            }
+
+            yield $name => [$fileinfo->getRealPath()];
         }
     }
 
