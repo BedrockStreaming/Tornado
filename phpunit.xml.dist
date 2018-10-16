@@ -19,6 +19,9 @@
         <testsuite name="Tornado Test Suite">
             <directory>tests</directory>
         </testsuite>
+        <testsuite name="Tornado Examples">
+            <directory>examples/tests</directory>
+        </testsuite>
     </testsuites>
 
     <filter>

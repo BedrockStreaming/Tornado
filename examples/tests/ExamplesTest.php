@@ -1,6 +1,6 @@
 <?php
 
-namespace M6WebTest\Tornado;
+namespace M6WebExamplesTest\Tornado;
 
 use PHPUnit\Framework\TestCase;
 
@@ -9,7 +9,7 @@ class ExamplesTest extends TestCase
     public function examplesProvider()
     {
         $iterator = new \FilesystemIterator(
-            __DIR__.'/../examples',
+            __DIR__.'/../',
             \FilesystemIterator::CURRENT_AS_PATHNAME | \FilesystemIterator::KEY_AS_FILENAME | \FilesystemIterator::SKIP_DOTS
         );
 
