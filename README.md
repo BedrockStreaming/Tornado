@@ -1,8 +1,9 @@
 # Tornado 🌪🐎
 [![Build Status](https://travis-ci.com/M6Web/Tornado.svg?branch=master)](https://travis-ci.com/M6Web/Tornado)
 
-
 A library for asynchronous programming in [Php](https://secure.php.net/).
+
+<img src="assets/Tornado-Logo.png?raw=true" width="250" align="right" alt="Tornado Logo">
 
 *Tornado* is composed of several interfaces to write asynchronous programs using [generators](https://secure.php.net/manual/en/language.generators.php).
 This library provides adapters for popular asynchronous frameworks ([ReactPhp](https://reactphp.org/), [Amp](https://amphp.org/))
@@ -197,6 +198,9 @@ function waitException(Tornado\EventLoop $eventLoop)
 No, even if these two libraries deal with asynchronous programming,
 they are absolutely not related.
 The name *Tornado* has been chosen in reference to the [horse ridden by Zorro](https://en.wikipedia.org/wiki/Tornado_%28horse%29).
+
+#### I :heart: your logo, who did it?
+The *Tornado* logo has been designed by [Cécile Moret](https://cecilemoret.com/).
 
 ## Contributing
 
