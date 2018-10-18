@@ -24,6 +24,18 @@ interface EventLoop
     public function promiseAll(Promise ...$promises): Promise;
 
     /**
+     * Creates a Promise that will be resolved with an array containing the result of
+     * $function applied to each elements of input traversable.
+     * You should use this function each time that you use yield in a foreach loop.
+     *
+     * @param \Traversable|array $traversable Input elements
+     * @param callable           $function    must return a generator from an input value, and an optional key
+     *
+     * @return Promise
+     */
+    public function promiseForeach($traversable, callable $function): Promise;
+
+    /**
      * Creates a promise that will behave like the first settled input promise, while others will be ignored.
      **/
     public function promiseRace(Promise ...$promises): Promise;

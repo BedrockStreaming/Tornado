@@ -134,6 +134,19 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function promiseForeach($traversable, callable $function): Promise
+    {
+        $promises = [];
+        foreach ($traversable as $key => $value) {
+            $promises[] = $this->async($function($value, $key));
+        }
+
+        return $this->promiseAll(...$promises);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function promiseRace(Promise ...$promises): Promise
     {
         if (empty($promises)) {
