@@ -1,9 +1,9 @@
 # Tornado 🌪🐎
+<img src="assets/Tornado-Logo.png?raw=true" width="250" align="right" alt="Tornado Logo">
+
 [![Build Status](https://travis-ci.com/M6Web/Tornado.svg?branch=master)](https://travis-ci.com/M6Web/Tornado)
 
 A library for asynchronous programming in [Php](https://secure.php.net/).
-
-<img src="assets/Tornado-Logo.png?raw=true" width="250" align="right" alt="Tornado Logo">
 
 *Tornado* is composed of several interfaces to write asynchronous programs using [generators](https://secure.php.net/manual/en/language.generators.php).
 This library provides adapters for popular asynchronous frameworks ([ReactPhp](https://reactphp.org/), [Amp](https://amphp.org/))
