@@ -70,6 +70,23 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
+    public function promiseForeach($traversable, callable $function): Promise
+    {
+        try {
+            $results = [];
+            foreach ($traversable as $key => $value) {
+                $results[] = $this->wait($this->async($function($value, $key)));
+            }
+
+            return $this->promiseFulfilled($results);
+        } catch (\Throwable $exception) {
+            return $this->promiseRejected($exception);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function promiseRace(Promise ...$promises): Promise
     {
         return reset($promises) ?: $this->promiseFulfilled(null);

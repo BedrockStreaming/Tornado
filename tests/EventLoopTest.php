@@ -13,6 +13,7 @@ abstract class EventLoopTest extends TestCase
         EventLoopTest\AsyncTest,
         EventLoopTest\StreamsTest,
         EventLoopTest\PromiseAllTest,
+        EventLoopTest\PromiseForeachTest,
         EventLoopTest\PromiseRaceTest;
 
     abstract protected function createEventLoop(): EventLoop;
