@@ -20,15 +20,37 @@ class PromiseWrapper implements Promise
         $this->reactPromise = $reactPromise;
     }
 
-    public static function fromPromise(Promise $promise): self
+    public function getReactPromise(): \React\Promise\PromiseInterface
     {
-        assert($promise instanceof self);
+        return $this->reactPromise;
+    }
+
+    public static function downcast(Promise $promise): self
+    {
+        assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         return $promise;
     }
 
-    public function getReactPromise(): \React\Promise\PromiseInterface
+    public static function fromGenerator(\Generator $generator): self
     {
-        return $this->reactPromise;
+        $promise = $generator->current();
+        if (!$promise instanceof self) {
+            throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
+        }
+
+        return self::downcast($promise);
+    }
+
+    /**
+     * @param Promise[] ...$promises
+     *
+     * @return \React\Promise\PromiseInterface[]
+     */
+    public static function toReactPromiseArray(Promise ...$promises): array
+    {
+        return array_map(function (Promise $promise) {
+            return self::downcast($promise)->reactPromise;
+        }, $promises);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace M6Web\Tornado\Adapter\ReactPhp;
 
+use M6Web\Tornado\Adapter\ReactPhp\Internal\PromiseWrapper;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -22,7 +23,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $value = null;
         $isRejected = false;
         $promiseSettled = false;
-        self::toReactPromise($promise)->then(
+        Internal\PromiseWrapper::downcast($promise)->getReactPromise()->then(
             function ($result) use (&$value, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
@@ -57,50 +58,39 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $wrapper = new class() {
-            public $generator;
-            public $deferred;
-
-            public function onFulfilled($result)
-            {
-                try {
-                    $this->generator->send($result);
-                    $this->wrap();
-                } catch (\Throwable $throwable) {
-                    $this->deferred->reject($throwable);
+        $fnWrapGenerator = function (\Generator $generator, Deferred $deferred) use (&$fnWrapGenerator) {
+            try {
+                if (!$generator->valid()) {
+                    return $deferred->resolve($generator->getReturn());
                 }
-            }
-
-            public function onRejected($reason)
-            {
-                try {
-                    $this->generator->throw($reason);
-                    $this->wrap();
-                } catch (\Throwable $throwable) {
-                    $this->deferred->reject($throwable);
-                }
-            }
-
-            public function wrap()
-            {
-                try {
-                    if (!$this->generator->valid()) {
-                        return $this->deferred->resolve($this->generator->getReturn());
-                    }
-                    $blockingPromise = $this->generator->current();
-                    Internal\PromiseWrapper::fromPromise($blockingPromise)->getReactPromise()
-                        ->then([$this, 'onFulfilled'], [$this, 'onRejected']);
-                } catch (\Throwable $throwable) {
-                    $this->deferred->reject($throwable);
-                }
+                Internal\PromiseWrapper::fromGenerator($generator)
+                    ->getReactPromise()->then(
+                        function ($result) use ($generator, $deferred, $fnWrapGenerator) {
+                            try {
+                                $generator->send($result);
+                                $fnWrapGenerator($generator, $deferred);
+                            } catch (\Throwable $throwable) {
+                                $deferred->reject($throwable);
+                            }
+                        },
+                        function ($reason) use ($generator, $deferred, $fnWrapGenerator) {
+                            try {
+                                $generator->throw($reason);
+                                $fnWrapGenerator($generator, $deferred);
+                            } catch (\Throwable $throwable) {
+                                $deferred->reject($throwable);
+                            }
+                        }
+                    );
+            } catch (\Throwable $throwable) {
+                $deferred->reject($throwable);
             }
         };
 
-        $wrapper->generator = $generator;
-        $wrapper->deferred = $this->deferred();
-        $wrapper->wrap();
+        $deferred = $this->deferred();
+        $fnWrapGenerator($generator, $deferred);
 
-        return $wrapper->deferred->getPromise();
+        return $deferred->getPromise();
     }
 
     /**
@@ -108,9 +98,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $reactPromises = array_map([self::class, 'toReactPromise'], $promises);
-
-        return self::fromReactPromise(\React\Promise\all($reactPromises));
+        return new Internal\PromiseWrapper(\React\Promise\all(
+            Internal\PromiseWrapper::toReactPromiseArray(...$promises)
+        ));
     }
 
     /**
@@ -120,10 +110,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $reactPromises = [];
         foreach ($traversable as $key => $value) {
-            $reactPromises[] = self::toReactPromise($this->async($function($value, $key)));
+            $reactPromises[] = Internal\PromiseWrapper::downcast(
+                $this->async($function($value, $key))
+            )->getReactPromise();
         }
 
-        return self::fromReactPromise(\React\Promise\all($reactPromises));
+        return new PromiseWrapper(\React\Promise\all($reactPromises));
     }
 
     /**
@@ -131,9 +123,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
-        $reactPromises = array_map([self::class, 'toReactPromise'], $promises);
-
-        return self::fromReactPromise(\React\Promise\race($reactPromises));
+        return new Internal\PromiseWrapper(\React\Promise\race(
+            Internal\PromiseWrapper::toReactPromiseArray(...$promises)
+        ));
     }
 
     /**
@@ -141,7 +133,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return self::fromReactPromise(new \React\Promise\FulfilledPromise($value));
+        return new Internal\PromiseWrapper(new \React\Promise\FulfilledPromise($value));
     }
 
     /**
@@ -149,7 +141,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        return self::fromReactPromise(new \React\Promise\RejectedPromise($throwable));
+        return new Internal\PromiseWrapper(new \React\Promise\RejectedPromise($throwable));
     }
 
     /**
@@ -186,29 +178,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function deferred(): Deferred
     {
-        $deferred = new class() implements Deferred {
-            public $reactDeferred;
-            public $promise;
-
-            public function getPromise(): Promise
-            {
-                return $this->promise;
-            }
-
-            public function resolve($value)
-            {
-                $this->reactDeferred->resolve($value);
-            }
-
-            public function reject(\Throwable $throwable)
-            {
-                $this->reactDeferred->reject($throwable);
-            }
-        };
-        $deferred->reactDeferred = new \React\Promise\Deferred();
-        $deferred->promise = self::fromReactPromise($deferred->reactDeferred->promise());
-
-        return $deferred;
+        return new Internal\Deferred();
     }
 
     /**
@@ -243,15 +213,5 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         );
 
         return $deferred->getPromise();
-    }
-
-    private static function fromReactPromise(\React\Promise\PromiseInterface $reactPromise): Promise
-    {
-        return new Internal\PromiseWrapper($reactPromise);
-    }
-
-    private static function toReactPromise(Promise $promise): \React\Promise\PromiseInterface
-    {
-        return Internal\PromiseWrapper::fromPromise($promise)->getReactPromise();
     }
 }
