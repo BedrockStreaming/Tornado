@@ -30,7 +30,7 @@
         "ext-curl": "^7.1",
         "react/event-loop": "^1.0",
         "react/promise": "^2.7",
-        "phpstan/phpstan": "dev-master"
+        "phpstan/phpstan": "^0.10.5"
     },
     "suggest": {
         "amphp/amp": "Needed to use Tornado\\Adapter\\Amp\\EventLoop",
