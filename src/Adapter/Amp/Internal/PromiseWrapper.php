@@ -1,6 +1,6 @@
 <?php
 
-namespace M6Web\Tornado\Adapter\ReactPhp\Internal;
+namespace M6Web\Tornado\Adapter\Amp\Internal;
 
 use M6Web\Tornado\Promise;
 
@@ -11,18 +11,18 @@ use M6Web\Tornado\Promise;
 class PromiseWrapper implements Promise
 {
     /**
-     * @var \React\Promise\PromiseInterface
+     * @var \Amp\Promise
      */
-    private $reactPromise;
+    private $ampPromise;
 
-    public function __construct(\React\Promise\PromiseInterface $reactPromise)
+    public function __construct(\Amp\Promise $ampPromise)
     {
-        $this->reactPromise = $reactPromise;
+        $this->ampPromise = $ampPromise;
     }
 
-    public function getReactPromise(): \React\Promise\PromiseInterface
+    public function getAmpPromise(): \Amp\Promise
     {
-        return $this->reactPromise;
+        return $this->ampPromise;
     }
 
     public static function downcast(Promise $promise): self
@@ -45,12 +45,12 @@ class PromiseWrapper implements Promise
     /**
      * @param Promise[] ...$promises
      *
-     * @return \React\Promise\PromiseInterface[]
+     * @return \Amp\Promise[]
      */
-    public static function toReactPromiseArray(Promise ...$promises): array
+    public static function toAmpPromiseArray(Promise ...$promises): array
     {
         return array_map(function (Promise $promise) {
-            return self::downcast($promise)->reactPromise;
+            return self::downcast($promise)->ampPromise;
         }, $promises);
     }
 }

@@ -15,6 +15,23 @@ class PendingPromise implements Promise
     private $callbacks = [];
     private $isSettled = false;
 
+    public static function downcast(Promise $promise): self
+    {
+        assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
+
+        return $promise;
+    }
+
+    public static function fromGenerator(\Generator $generator): self
+    {
+        $promise = $generator->current();
+        if (!$promise instanceof self) {
+            throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
+        }
+
+        return self::downcast($promise);
+    }
+
     public function resolve($value): self
     {
         $this->settle();

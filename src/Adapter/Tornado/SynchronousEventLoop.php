@@ -34,6 +34,10 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
             while ($generator->valid()) {
                 $blockingPromise = $generator->current();
 
+                if (!$blockingPromise instanceof Promise) {
+                    throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
+                }
+
                 // Resolves blocking promise and forwards result to the generator
                 $blockingPromiseValue = null;
                 $blockingPromiseException = null;
