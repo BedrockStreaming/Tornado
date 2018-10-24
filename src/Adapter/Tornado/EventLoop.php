@@ -11,6 +11,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      * @var Internal\StreamEventLoop
      */
     private $streamLoop;
+
+    /**
+     * @var Internal\Task[]
+     */
     private $tasks = [];
 
     public function __construct()
@@ -47,33 +51,33 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->tasks = [];
             foreach ($allTasks as $task) {
                 try {
-                    if (!$task->generator->valid()) {
-                        $task->promise->resolve($task->generator->getReturn());
+                    if (!$task->getGenerator()->valid()) {
+                        $task->getPromise()->resolve($task->getGenerator()->getReturn());
                         // This task is finished
                         continue;
                     }
 
-                    $blockingPromise = Internal\PendingPromise::fromGenerator($task->generator);
+                    $blockingPromise = Internal\PendingPromise::fromGenerator($task->getGenerator());
                     $blockingPromise->addCallbacks(
                         function ($value) use ($task) {
                             try {
-                                $task->generator->send($value);
+                                $task->getGenerator()->send($value);
                                 $this->tasks[] = $task;
                             } catch (\Throwable $exception) {
-                                $task->promise->reject($exception);
+                                $task->getPromise()->reject($exception);
                             }
                         },
                         function (\Throwable $throwable) use ($task) {
                             try {
-                                $task->generator->throw($throwable);
+                                $task->getGenerator()->throw($throwable);
                                 $this->tasks[] = $task;
                             } catch (\Throwable $exception) {
-                                $task->promise->reject($exception);
+                                $task->getPromise()->reject($exception);
                             }
                         }
                     );
                 } catch (\Throwable $exception) {
-                    $task->promise->reject($exception);
+                    $task->getPromise()->reject($exception);
                 }
             }
         } while ($promiseIsPending && $somethingToDo());
@@ -86,15 +90,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $task = new class() {
-            public $generator;
-            public $promise;
-        };
-        $task->generator = $generator;
-        $task->promise = new Internal\PendingPromise();
-        $this->tasks[] = $task;
+        $this->tasks[] = ($task = new Internal\Task($generator));
 
-        return $task->promise;
+        return $task->getPromise();
     }
 
     /**
