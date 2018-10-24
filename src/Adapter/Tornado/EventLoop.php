@@ -36,6 +36,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         );
 
+        // Workaround to solve PhpStan false positive
+        $somethingToDo = function (): bool {
+            return count($this->tasks) !== 0;
+        };
+
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
@@ -71,7 +76,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     $task->promise->reject($exception);
                 }
             }
-        } while ($promiseIsPending && $this->tasks);
+        } while ($promiseIsPending && $somethingToDo());
 
         return $finalAction();
     }

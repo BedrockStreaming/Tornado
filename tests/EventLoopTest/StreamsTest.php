@@ -18,6 +18,10 @@ trait StreamsTest
         $domain = (DIRECTORY_SEPARATOR === '\\') ? STREAM_PF_INET : STREAM_PF_UNIX;
         $sockets = stream_socket_pair($domain, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
 
+        if ($sockets === false) {
+            throw new \Error('Cannot create socket pair for tests.');
+        }
+
         foreach ($sockets as $socket) {
             if (function_exists('stream_set_read_buffer')) {
                 stream_set_read_buffer($socket, 0);
@@ -50,6 +54,9 @@ trait StreamsTest
         $readFromStream = function (EventLoop $eventLoop, $stream) use (&$sequence): \Generator {
             do {
                 $token = fread(yield $eventLoop->readable($stream), 2);
+                if ($token === false) {
+                    throw new \Error('Failed to read from stream in tests.');
+                }
                 $sequence .= "R$token";
             } while (strlen($token));
 
