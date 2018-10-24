@@ -12,10 +12,4 @@ class EventLoopTest extends \M6WebTest\Tornado\EventLoopTest
     {
         return new ReactPhp\EventLoop(new StreamSelectLoop());
     }
-
-    public function testStreamShouldReadFromWritable($expectedSequence = '')
-    {
-        // Because ReactPhp resolve promise in a slightly different order.
-        parent::testStreamShouldReadFromWritable('W0R0W12345R12W6R34R56R');
-    }
 }

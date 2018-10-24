@@ -45,6 +45,29 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return count($this->tasks) !== 0;
         };
 
+        $fnThrowIfNotNull = function (?\Throwable $throwable) {
+            if ($throwable !== null) {
+                throw $throwable;
+            }
+        };
+
+        $globalException = null;
+        // Returns a callback to propagate a value to a generator via $function
+        $fnSafeGeneratorCallback = function (Internal\Task $task, string $function) use (&$globalException) {
+            return function ($value) use ($task, $function, &$globalException) {
+                try {
+                    $task->getGenerator()->$function($value);
+                    $this->tasks[] = $task;
+                } catch (\Throwable $exception) {
+                    if ($task->getPromise()->hasBeenYielded()) {
+                        $task->getPromise()->reject($exception);
+                    } else {
+                        $globalException = $exception;
+                    }
+                }
+            };
+        };
+
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
@@ -59,26 +82,18 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
                     $blockingPromise = Internal\PendingPromise::fromGenerator($task->getGenerator());
                     $blockingPromise->addCallbacks(
-                        function ($value) use ($task) {
-                            try {
-                                $task->getGenerator()->send($value);
-                                $this->tasks[] = $task;
-                            } catch (\Throwable $exception) {
-                                $task->getPromise()->reject($exception);
-                            }
-                        },
-                        function (\Throwable $throwable) use ($task) {
-                            try {
-                                $task->getGenerator()->throw($throwable);
-                                $this->tasks[] = $task;
-                            } catch (\Throwable $exception) {
-                                $task->getPromise()->reject($exception);
-                            }
-                        }
+                        $fnSafeGeneratorCallback($task, 'send'),
+                        $fnSafeGeneratorCallback($task, 'throw')
                     );
                 } catch (\Throwable $exception) {
-                    $task->getPromise()->reject($exception);
+                    if ($task->getPromise()->hasBeenYielded()) {
+                        $task->getPromise()->reject($exception);
+                    } else {
+                        throw $exception;
+                    }
                 }
+
+                $fnThrowIfNotNull($globalException);
             }
         } while ($promiseIsPending && $somethingToDo());
 
