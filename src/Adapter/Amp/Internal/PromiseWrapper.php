@@ -15,6 +15,8 @@ class PromiseWrapper implements Promise
      */
     private $ampPromise;
 
+    private $hasBeenYielded = false;
+
     public function __construct(\Amp\Promise $ampPromise)
     {
         $this->ampPromise = $ampPromise;
@@ -38,8 +40,15 @@ class PromiseWrapper implements Promise
         if (!$promise instanceof self) {
             throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
         }
+        $promise = self::downcast($promise);
+        $promise->hasBeenYielded = true;
 
-        return self::downcast($promise);
+        return $promise;
+    }
+
+    public function hasBeenYielded(): bool
+    {
+        return $this->hasBeenYielded;
     }
 
     /**

@@ -22,6 +22,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             switch ($error->getMessage()) {
                 case 'Loop stopped without resolving the promise':
                     throw new \Error('Impossible to resolve the promise, no more task to execute.', 0, $error);
+                case 'Loop exceptionally stopped without resolving the promise':
+                    throw $error->getPrevious() ?? $error;
                 default:
                     throw $error;
             }
@@ -33,31 +35,48 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $wrapper = function (\Generator $generator): \Generator {
-            while ($generator->valid()) {
-                $blockingPromise = Internal\PromiseWrapper::fromGenerator($generator)->getAmpPromise();
+        $wrapper = function (\Generator $generator, callable $fnSuccess, callable $fnFailure): \Generator {
+            try {
+                while ($generator->valid()) {
+                    $blockingPromise = Internal\PromiseWrapper::fromGenerator($generator)->getAmpPromise();
 
-                // Forwards promise value/exception to underlying generator
-                $blockingPromiseValue = null;
-                $blockingPromiseException = null;
-                try {
-                    $blockingPromiseValue = yield $blockingPromise;
-                } catch (\Throwable $throwable) {
-                    $blockingPromiseException = $throwable;
+                    // Forwards promise value/exception to underlying generator
+                    $blockingPromiseValue = null;
+                    $blockingPromiseException = null;
+                    try {
+                        $blockingPromiseValue = yield $blockingPromise;
+                    } catch (\Throwable $throwable) {
+                        $blockingPromiseException = $throwable;
+                    }
+                    if ($blockingPromiseException) {
+                        $generator->throw($blockingPromiseException);
+                    } else {
+                        $generator->send($blockingPromiseValue);
+                    }
                 }
-                if ($blockingPromiseException) {
-                    $generator->throw($blockingPromiseException);
-                } else {
-                    $generator->send($blockingPromiseValue);
-                }
+            } catch (\Throwable $throwable) {
+                $fnFailure($throwable);
             }
 
-            return $generator->getReturn();
+            $fnSuccess($generator->getReturn());
         };
 
-        return new Internal\PromiseWrapper(
-            new \Amp\Coroutine($wrapper($generator))
-        );
+        $deferred = new Internal\Deferred();
+        new \Amp\Coroutine($wrapper(
+            $generator,
+            [$deferred, 'resolve'],
+            function (\Throwable $throwable) use ($deferred) {
+                if ($deferred->getPromiseWrapper()->hasBeenYielded()) {
+                    $deferred->reject($throwable);
+                } else {
+                    \Amp\Loop::defer(function () use ($throwable) {
+                        throw $throwable;
+                    });
+                }
+            }
+        ));
+
+        return $deferred->getPromise();
     }
 
     /**

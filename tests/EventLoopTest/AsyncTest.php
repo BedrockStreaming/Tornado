@@ -120,6 +120,34 @@ trait AsyncTest
         $this->assertSame([1, [2, 3], 4], $eventLoop->wait($promise));
     }
 
+    public function testSubGeneratorThrowing()
+    {
+        $eventLoop = $this->createEventLoop();
+        $throwingGenerator = function (\Throwable $throwable) use ($eventLoop): \Generator {
+            yield $eventLoop->idle();
+            throw $throwable;
+        };
+        $tryCatchGenerator = function (Promise $promise) use ($eventLoop): \Generator {
+            try {
+                yield $promise;
+
+                return 'Not an error message';
+            } catch (\Throwable $throwable) {
+                yield $eventLoop->idle();
+
+                return $throwable->getMessage();
+            }
+        };
+
+        $promise = $eventLoop->async($tryCatchGenerator(
+            $eventLoop->async($throwingGenerator(
+                new \Exception('Error Message')
+            ))
+        ));
+
+        $this->assertSame('Error Message', $eventLoop->wait($promise));
+    }
+
     public function testYieldingForTheSameFulfilledPromise()
     {
         $eventLoop = $this->createEventLoop();
