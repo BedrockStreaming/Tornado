@@ -58,37 +58,49 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $fnWrapGenerator = function (\Generator $generator, Deferred $deferred) use (&$fnWrapGenerator) {
+        $fnWrapGenerator = function (\Generator $generator, callable $fnSuccess, callable $fnFailure) use (&$fnWrapGenerator) {
             try {
                 if (!$generator->valid()) {
-                    return $deferred->resolve($generator->getReturn());
+                    return $fnSuccess($generator->getReturn());
                 }
                 Internal\PromiseWrapper::fromGenerator($generator)
                     ->getReactPromise()->then(
-                        function ($result) use ($generator, $deferred, $fnWrapGenerator) {
+                        function ($result) use ($generator, $fnSuccess, $fnFailure, $fnWrapGenerator) {
                             try {
                                 $generator->send($result);
-                                $fnWrapGenerator($generator, $deferred);
+                                $fnWrapGenerator($generator, $fnSuccess, $fnFailure);
                             } catch (\Throwable $throwable) {
-                                $deferred->reject($throwable);
+                                $fnFailure($throwable);
                             }
                         },
-                        function ($reason) use ($generator, $deferred, $fnWrapGenerator) {
+                        function ($reason) use ($generator, $fnSuccess, $fnFailure, $fnWrapGenerator) {
                             try {
                                 $generator->throw($reason);
-                                $fnWrapGenerator($generator, $deferred);
+                                $fnWrapGenerator($generator, $fnSuccess, $fnFailure);
                             } catch (\Throwable $throwable) {
-                                $deferred->reject($throwable);
+                                $fnFailure($throwable);
                             }
                         }
                     );
             } catch (\Throwable $throwable) {
-                $deferred->reject($throwable);
+                $fnFailure($throwable);
             }
         };
 
-        $deferred = $this->deferred();
-        $fnWrapGenerator($generator, $deferred);
+        $deferred = new Internal\Deferred();
+        $fnWrapGenerator(
+            $generator,
+            [$deferred, 'resolve'],
+            function (\Throwable $throwable) use ($deferred) {
+                if ($deferred->getPromiseWrapper()->hasBeenYielded()) {
+                    $deferred->reject($throwable);
+                } else {
+                    $this->reactEventLoop->futureTick(function () use ($throwable) {
+                        throw $throwable;
+                    });
+                }
+            }
+        );
 
         return $deferred->getPromise();
     }

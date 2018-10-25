@@ -11,6 +11,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      * @var Internal\StreamEventLoop
      */
     private $streamLoop;
+
+    /**
+     * @var Internal\Task[]
+     */
     private $tasks = [];
 
     public function __construct()
@@ -41,40 +45,55 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return count($this->tasks) !== 0;
         };
 
+        $fnThrowIfNotNull = function (?\Throwable $throwable) {
+            if ($throwable !== null) {
+                throw $throwable;
+            }
+        };
+
+        $globalException = null;
+        // Returns a callback to propagate a value to a generator via $function
+        $fnSafeGeneratorCallback = function (Internal\Task $task, string $function) use (&$globalException) {
+            return function ($value) use ($task, $function, &$globalException) {
+                try {
+                    $task->getGenerator()->$function($value);
+                    $this->tasks[] = $task;
+                } catch (\Throwable $exception) {
+                    if ($task->getPromise()->hasBeenYielded()) {
+                        $task->getPromise()->reject($exception);
+                    } else {
+                        $globalException = $exception;
+                    }
+                }
+            };
+        };
+
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
             $this->tasks = [];
             foreach ($allTasks as $task) {
                 try {
-                    if (!$task->generator->valid()) {
-                        $task->promise->resolve($task->generator->getReturn());
+                    if (!$task->getGenerator()->valid()) {
+                        $task->getPromise()->resolve($task->getGenerator()->getReturn());
                         // This task is finished
                         continue;
                     }
 
-                    $blockingPromise = Internal\PendingPromise::fromGenerator($task->generator);
+                    $blockingPromise = Internal\PendingPromise::fromGenerator($task->getGenerator());
                     $blockingPromise->addCallbacks(
-                        function ($value) use ($task) {
-                            try {
-                                $task->generator->send($value);
-                                $this->tasks[] = $task;
-                            } catch (\Throwable $exception) {
-                                $task->promise->reject($exception);
-                            }
-                        },
-                        function (\Throwable $throwable) use ($task) {
-                            try {
-                                $task->generator->throw($throwable);
-                                $this->tasks[] = $task;
-                            } catch (\Throwable $exception) {
-                                $task->promise->reject($exception);
-                            }
-                        }
+                        $fnSafeGeneratorCallback($task, 'send'),
+                        $fnSafeGeneratorCallback($task, 'throw')
                     );
                 } catch (\Throwable $exception) {
-                    $task->promise->reject($exception);
+                    if ($task->getPromise()->hasBeenYielded()) {
+                        $task->getPromise()->reject($exception);
+                    } else {
+                        throw $exception;
+                    }
                 }
+
+                $fnThrowIfNotNull($globalException);
             }
         } while ($promiseIsPending && $somethingToDo());
 
@@ -86,15 +105,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $task = new class() {
-            public $generator;
-            public $promise;
-        };
-        $task->generator = $generator;
-        $task->promise = new Internal\PendingPromise();
-        $this->tasks[] = $task;
+        $this->tasks[] = ($task = new Internal\Task($generator));
 
-        return $task->promise;
+        return $task->getPromise();
     }
 
     /**

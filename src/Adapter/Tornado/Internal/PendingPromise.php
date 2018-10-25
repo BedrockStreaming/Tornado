@@ -14,6 +14,7 @@ class PendingPromise implements Promise
     private $throwable;
     private $callbacks = [];
     private $isSettled = false;
+    private $hasBeenYielded = false;
 
     public static function downcast(Promise $promise): self
     {
@@ -29,7 +30,15 @@ class PendingPromise implements Promise
             throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
         }
 
-        return self::downcast($promise);
+        $promise = self::downcast($promise);
+        $promise->hasBeenYielded = true;
+
+        return $promise;
+    }
+
+    public function hasBeenYielded(): bool
+    {
+        return $this->hasBeenYielded;
     }
 
     public function resolve($value): self

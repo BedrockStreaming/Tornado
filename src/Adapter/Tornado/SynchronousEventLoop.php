@@ -8,21 +8,32 @@ use M6Web\Tornado\Promise;
 class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
 {
     /**
+     * @var \Throwable[]
+     */
+    private $asyncThrowables = [];
+
+    /**
      * {@inheritdoc}
      */
     public function wait(Promise $promise)
     {
-        // Is it a fulfilled promise
-        if (property_exists($promise, 'value')) {
-            return $promise->value;
+        // If there are some uncaught exceptions, throw the first one.
+        if ($throwable = reset($this->asyncThrowables)) {
+            throw $throwable;
         }
 
-        // Is it a rejected promise?
-        if (property_exists($promise, 'exception')) {
-            throw $promise->exception;
-        }
+        $promise = Internal\PendingPromise::downcast($promise);
+        $result = null;
+        $promise->addCallbacks(
+            function ($value) use (&$result) {
+                $result = $value;
+            },
+            function (\Throwable $throwable) {
+                throw $throwable;
+            }
+        );
 
-        throw new \LogicException('Cannot wait a promise not created from the same EventLoop');
+        return $result;
     }
 
     /**
@@ -32,29 +43,26 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     {
         try {
             while ($generator->valid()) {
-                $blockingPromise = $generator->current();
-
-                if (!$blockingPromise instanceof Promise) {
-                    throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
-                }
-
-                // Resolves blocking promise and forwards result to the generator
-                $blockingPromiseValue = null;
-                $blockingPromiseException = null;
-                try {
-                    $blockingPromiseValue = $this->wait($blockingPromise);
-                } catch (\Throwable $exception) {
-                    $blockingPromiseException = $exception;
-                }
-                if ($blockingPromiseException) {
-                    $generator->throw($blockingPromiseException);
-                } else {
-                    $generator->send($blockingPromiseValue);
-                }
+                Internal\PendingPromise::fromGenerator($generator)->addCallbacks(
+                    function ($value) use ($generator) {
+                        $generator->send($value);
+                    },
+                    function (\Throwable $throwable) use ($generator) {
+                        // Since this exception is caught, remove it from the list
+                        $index = array_search($throwable, $this->asyncThrowables, true);
+                        if ($index !== false) {
+                            unset($this->asyncThrowables[$index]);
+                        }
+                        $generator->throw($throwable);
+                    }
+                );
             }
 
             return $this->promiseFulfilled($generator->getReturn());
         } catch (\Throwable $exception) {
+            // Will have to check that this exception is caught later…
+            $this->asyncThrowables[] = $exception;
+
             return $this->promiseRejected($exception);
         }
     }
@@ -101,12 +109,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        $promise = new class() implements Promise {
-            public $value;
-        };
-        $promise->value = $value;
-
-        return $promise;
+        return (new Internal\PendingPromise())->resolve($value);
     }
 
     /**
@@ -114,12 +117,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        $promise = new class() implements Promise {
-            public $exception;
-        };
-        $promise->exception = $throwable;
-
-        return $promise;
+        return (new Internal\PendingPromise())->reject($throwable);
     }
 
     /**

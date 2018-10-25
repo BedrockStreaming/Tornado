@@ -31,7 +31,7 @@ trait StreamsTest
         return $sockets;
     }
 
-    public function testStreamShouldReadFromWritable($expectedSequence = 'W0R0W12345R12R34W6R56R')
+    public function testStreamShouldReadFromWritable($expectedSequence = 'W0R0W12345R12W6R34R56R')
     {
         $tokens = ['0', '12345', '6'];
         [$streamIn, $streamOut] = $this->createStreamPair();

@@ -120,6 +120,34 @@ trait AsyncTest
         $this->assertSame([1, [2, 3], 4], $eventLoop->wait($promise));
     }
 
+    public function testSubGeneratorThrowing()
+    {
+        $eventLoop = $this->createEventLoop();
+        $throwingGenerator = function (\Throwable $throwable) use ($eventLoop): \Generator {
+            yield $eventLoop->idle();
+            throw $throwable;
+        };
+        $tryCatchGenerator = function (Promise $promise) use ($eventLoop): \Generator {
+            try {
+                yield $promise;
+
+                return 'Not an error message';
+            } catch (\Throwable $throwable) {
+                yield $eventLoop->idle();
+
+                return $throwable->getMessage();
+            }
+        };
+
+        $promise = $eventLoop->async($tryCatchGenerator(
+            $eventLoop->async($throwingGenerator(
+                new \Exception('Error Message')
+            ))
+        ));
+
+        $this->assertSame('Error Message', $eventLoop->wait($promise));
+    }
+
     public function testYieldingForTheSameFulfilledPromise()
     {
         $eventLoop = $this->createEventLoop();
@@ -182,5 +210,44 @@ trait AsyncTest
         $eventLoop->wait($eventLoop->promiseFulfilled(null));
 
         $this->assertSame(1, $count);
+    }
+
+    public function testEventLoopShouldThrowInCaseOfUncaughtExceptionInBackgroundGenerator()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $failingGenerator = function () use ($eventLoop) {
+            yield $eventLoop->idle();
+            throw new \Exception('This is a failure');
+        };
+
+        $waitingGenerator = function () use ($eventLoop) {
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+        };
+
+        $ignoredBackgroundPromise = $eventLoop->async($failingGenerator());
+        $promiseSuccess = $eventLoop->async($waitingGenerator());
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('This is a failure');
+        $eventLoop->wait($promiseSuccess);
+    }
+
+    public function testEventLoopShouldNotThrowInCaseOfExplicitlyRejectedPromise()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $generatorWaitALittle = function () use ($eventLoop) {
+            yield $eventLoop->idle();
+            yield $eventLoop->idle();
+        };
+
+        $unwatchedRejectedPromise = $eventLoop->promiseRejected(new \Exception('Rejected Promise'));
+        $unwatchedDeferred = $eventLoop->deferred();
+        $unwatchedDeferred->reject(new \Exception('Rejected Deferred'));
+
+        $this->assertSame(null, $eventLoop->wait($eventLoop->async($generatorWaitALittle())));
     }
 }

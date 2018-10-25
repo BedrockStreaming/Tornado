@@ -40,23 +40,27 @@ class StreamEventLoop
 
             $read = $this->readStreams;
             $write = $this->writeStreams;
-            stream_select($read, $write, $except, 0);
+            $nbStreams = @\stream_select($read, $write, $except, 0);
 
-            foreach ($read as $stream) {
-                $streamId = (int) $stream;
-                $pendingPromise = $this->pendingPromises[$streamId];
-                unset($this->readStreams[$streamId]);
-                unset($this->pendingPromises[$streamId]);
-                $pendingPromise->resolve($stream);
+            if ($nbStreams !== false) {
+                foreach ($read as $stream) {
+                    $streamId = (int) $stream;
+                    $pendingPromise = $this->pendingPromises[$streamId];
+                    unset($this->readStreams[$streamId]);
+                    unset($this->pendingPromises[$streamId]);
+                    $pendingPromise->resolve($stream);
+                }
+
+                foreach ($write as $stream) {
+                    $streamId = (int) $stream;
+                    $pendingPromise = $this->pendingPromises[$streamId];
+                    unset($this->writeStreams[$streamId]);
+                    unset($this->pendingPromises[$streamId]);
+                    $pendingPromise->resolve($stream);
+                }
             }
 
-            foreach ($write as $stream) {
-                $streamId = (int) $stream;
-                $pendingPromise = $this->pendingPromises[$streamId];
-                unset($this->writeStreams[$streamId]);
-                unset($this->pendingPromises[$streamId]);
-                $pendingPromise->resolve($stream);
-            }
+            yield $eventLoop->idle();
         }
     }
 

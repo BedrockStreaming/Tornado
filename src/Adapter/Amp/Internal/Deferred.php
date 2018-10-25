@@ -34,6 +34,11 @@ class Deferred implements \M6Web\Tornado\Deferred
         return $this->promise;
     }
 
+    public function getPromiseWrapper(): PromiseWrapper
+    {
+        return $this->promise;
+    }
+
     /**
      * {@inheritdoc}
      */

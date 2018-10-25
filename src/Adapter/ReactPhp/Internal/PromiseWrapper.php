@@ -15,6 +15,8 @@ class PromiseWrapper implements Promise
      */
     private $reactPromise;
 
+    private $hasBeenYielded = false;
+
     public function __construct(\React\Promise\PromiseInterface $reactPromise)
     {
         $this->reactPromise = $reactPromise;
@@ -39,7 +41,15 @@ class PromiseWrapper implements Promise
             throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
         }
 
-        return self::downcast($promise);
+        $promise = self::downcast($promise);
+        $promise->hasBeenYielded = true;
+
+        return $promise;
+    }
+
+    public function hasBeenYielded(): bool
+    {
+        return $this->hasBeenYielded;
     }
 
     /**
