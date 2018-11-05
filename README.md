@@ -137,7 +137,8 @@ instead of waiting each input [`Promise`](src/Promise.php) consecutively,
 because of concurrency.
 Each time that you have several promises to resolve,
 ask yourself if you could wait them concurrently, especially when you deal with loops
-(take a look to [`EventLoop::promiseForeach`](src/EventLoop.php) function). 
+(take a look to [`EventLoop::promiseForeach`](src/EventLoop.php) function
+and [corresponding example](https://github.com/M6Web/Tornado/tree/master/examples/04-foreach.php)). 
 
 ### Resolving your own promises
 By design, you cannot resolve a promise by yourself, you will need a [`Deferred`](src/Deferred.php).
