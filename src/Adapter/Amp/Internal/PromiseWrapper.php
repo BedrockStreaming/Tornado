@@ -15,11 +15,33 @@ class PromiseWrapper implements Promise
      */
     private $ampPromise;
 
+    /**
+     * @var ?\Throwable
+     */
+    private $exception;
+
     private $hasBeenYielded = false;
+
+    private $throwOnDestructIfNotYielded = false;
 
     public function __construct(\Amp\Promise $ampPromise)
     {
         $this->ampPromise = $ampPromise;
+        $this->ampPromise->onResolve(function (?\Throwable $reason, $value) {
+            $this->exception = $reason;
+        });
+    }
+
+    public function __destruct()
+    {
+        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->exception !== null) {
+            throw $this->exception;
+        }
+    }
+
+    public function enableThrowOnDestructIfNotYielded()
+    {
+        $this->throwOnDestructIfNotYielded = true;
     }
 
     public function getAmpPromise(): \Amp\Promise
@@ -34,6 +56,14 @@ class PromiseWrapper implements Promise
         return $promise;
     }
 
+    public static function toWatchedAmpPromise(Promise $promise): \Amp\Promise
+    {
+        $promise = self::downcast($promise);
+        $promise->hasBeenYielded = true;
+
+        return $promise->getAmpPromise();
+    }
+
     public static function fromGenerator(\Generator $generator): self
     {
         $promise = $generator->current();
@@ -46,17 +76,12 @@ class PromiseWrapper implements Promise
         return $promise;
     }
 
-    public function hasBeenYielded(): bool
-    {
-        return $this->hasBeenYielded;
-    }
-
     /**
      * @param Promise[] ...$promises
      *
      * @return \Amp\Promise[]
      */
-    public static function toYieldedAmpPromiseArray(Promise ...$promises): array
+    public static function toWatchedAmpPromiseArray(Promise ...$promises): array
     {
         return array_map(function (Promise $promise) {
             $promise = self::downcast($promise);

@@ -160,4 +160,27 @@ abstract class EventLoopTest extends TestCase
         $this->expectExceptionMessage('Impossible to resolve the promise, no more task to execute.');
         $eventLoop->wait($deferred->getPromise());
     }
+
+    public function testExceptionBeforeYieldAreCatchable()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $failingPromise = $eventLoop->async((function () use ($eventLoop): \Generator {
+            throw new \Exception('This is a failure');
+            yield $eventLoop->idle();
+        })());
+
+        $createGenerator = function () use ($failingPromise): \Generator {
+            try {
+                yield $failingPromise;
+            } catch (\Exception $e) {
+                return 'catched!';
+            }
+        };
+
+        $this->assertSame(
+            'catched!',
+            $eventLoop->wait($eventLoop->async($createGenerator()))
+        );
+    }
 }

@@ -15,11 +15,33 @@ class PromiseWrapper implements Promise
      */
     private $reactPromise;
 
+    /**
+     * @var \Throwable
+     */
+    private $exception;
+
     private $hasBeenYielded = false;
+
+    private $throwOnDestructIfNotYielded = false;
 
     public function __construct(\React\Promise\PromiseInterface $reactPromise)
     {
         $this->reactPromise = $reactPromise;
+        $this->reactPromise->then(null, function (\Throwable $reason) {
+            $this->exception = $reason;
+        });
+    }
+
+    public function __destruct()
+    {
+        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->exception !== null) {
+            throw $this->exception;
+        }
+    }
+
+    public function enableThrowOnDestructIfNotYielded()
+    {
+        $this->throwOnDestructIfNotYielded = true;
     }
 
     public function getReactPromise(): \React\Promise\PromiseInterface
@@ -32,6 +54,14 @@ class PromiseWrapper implements Promise
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         return $promise;
+    }
+
+    public static function toWatchedReactPromise(Promise $promise): \React\Promise\PromiseInterface
+    {
+        $promise = self::downcast($promise);
+        $promise->hasBeenYielded = true;
+
+        return $promise->reactPromise;
     }
 
     public static function fromGenerator(\Generator $generator): self
@@ -47,17 +77,12 @@ class PromiseWrapper implements Promise
         return $promise;
     }
 
-    public function hasBeenYielded(): bool
-    {
-        return $this->hasBeenYielded;
-    }
-
     /**
      * @param Promise[] ...$promises
      *
      * @return \React\Promise\PromiseInterface[]
      */
-    public static function toYieldedReactPromiseArray(Promise ...$promises): array
+    public static function toWatchedReactPromiseArray(Promise ...$promises): array
     {
         return array_map(function (Promise $promise) {
             $promise = self::downcast($promise);

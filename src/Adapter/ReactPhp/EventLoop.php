@@ -22,7 +22,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $value = null;
         $isRejected = false;
         $promiseSettled = false;
-        Internal\PromiseWrapper::downcast($promise)->getReactPromise()->then(
+        Internal\PromiseWrapper::toWatchedReactPromise($promise)->then(
             function ($result) use (&$value, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
@@ -86,18 +86,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
-        $deferred = new Internal\Deferred();
+        $deferred = Internal\Deferred::forAsync();
         $fnWrapGenerator(
             $generator,
             [$deferred, 'resolve'],
             function (\Throwable $throwable) use ($deferred) {
-                if ($deferred->getPromiseWrapper()->hasBeenYielded()) {
-                    $deferred->reject($throwable);
-                } else {
-                    $this->reactEventLoop->futureTick(function () use ($throwable) {
-                        throw $throwable;
-                    });
-                }
+                $deferred->reject($throwable);
             }
         );
 
@@ -110,7 +104,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(\React\Promise\all(
-            Internal\PromiseWrapper::toYieldedReactPromiseArray(...$promises)
+            Internal\PromiseWrapper::toWatchedReactPromiseArray(...$promises)
         ));
     }
 
@@ -133,7 +127,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRace(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(\React\Promise\race(
-            Internal\PromiseWrapper::toYieldedReactPromiseArray(...$promises)
+            Internal\PromiseWrapper::toWatchedReactPromiseArray(...$promises)
         ));
     }
 
