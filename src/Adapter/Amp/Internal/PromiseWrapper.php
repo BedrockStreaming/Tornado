@@ -56,10 +56,13 @@ class PromiseWrapper implements Promise
      *
      * @return \Amp\Promise[]
      */
-    public static function toAmpPromiseArray(Promise ...$promises): array
+    public static function toYieldedAmpPromiseArray(Promise ...$promises): array
     {
         return array_map(function (Promise $promise) {
-            return self::downcast($promise)->ampPromise;
+            $promise = self::downcast($promise);
+            $promise->hasBeenYielded = true;
+
+            return $promise->ampPromise;
         }, $promises);
     }
 }

@@ -74,4 +74,27 @@ trait PromiseAllTest
             $eventLoop->wait($promise)
         );
     }
+
+    public function testPromiseAllCatchableException()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $throwingGenerator = (function () use ($eventLoop): \Generator {
+            yield $eventLoop->idle();
+            throw new \Exception('This is a failure');
+        })();
+
+        $createGenerator = function () use ($eventLoop, $throwingGenerator): \Generator {
+            try {
+                yield $eventLoop->promiseAll($eventLoop->async($throwingGenerator));
+            } catch (\Exception $e) {
+                return 'catched!';
+            }
+        };
+
+        $this->assertSame(
+            'catched!',
+            $eventLoop->wait($eventLoop->async($createGenerator()))
+        );
+    }
 }

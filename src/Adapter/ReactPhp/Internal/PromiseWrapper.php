@@ -57,10 +57,13 @@ class PromiseWrapper implements Promise
      *
      * @return \React\Promise\PromiseInterface[]
      */
-    public static function toReactPromiseArray(Promise ...$promises): array
+    public static function toYieldedReactPromiseArray(Promise ...$promises): array
     {
         return array_map(function (Promise $promise) {
-            return self::downcast($promise)->reactPromise;
+            $promise = self::downcast($promise);
+            $promise->hasBeenYielded = true;
+
+            return $promise->reactPromise;
         }, $promises);
     }
 }

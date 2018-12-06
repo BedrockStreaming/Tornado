@@ -89,4 +89,24 @@ trait PromiseForeachTest
             $eventLoop->promiseForeach([1], $callback)
         );
     }
+
+    public function testPromiseForeachCatchableException()
+    {
+        $eventLoop = $this->createEventLoop();
+        $createGenerator = function () use ($eventLoop): \Generator {
+            try {
+                yield $eventLoop->promiseForeach([1], function ($value) use ($eventLoop) {
+                    yield $eventLoop->idle();
+                    throw new \Exception('This is a failure');
+                });
+            } catch (\Exception $e) {
+                return 'catched';
+            }
+        };
+
+        $this->assertSame(
+            'catched',
+            $eventLoop->wait($eventLoop->async($createGenerator()))
+        );
+    }
 }
