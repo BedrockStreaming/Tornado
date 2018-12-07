@@ -2,7 +2,6 @@
 
 namespace M6Web\Tornado\Adapter\ReactPhp;
 
-use M6Web\Tornado\Adapter\ReactPhp\Internal\PromiseWrapper;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -111,7 +110,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(\React\Promise\all(
-            Internal\PromiseWrapper::toReactPromiseArray(...$promises)
+            Internal\PromiseWrapper::toYieldedReactPromiseArray(...$promises)
         ));
     }
 
@@ -120,14 +119,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseForeach($traversable, callable $function): Promise
     {
-        $reactPromises = [];
+        $promises = [];
         foreach ($traversable as $key => $value) {
-            $reactPromises[] = Internal\PromiseWrapper::downcast(
-                $this->async($function($value, $key))
-            )->getReactPromise();
+            $promises[] = $this->async($function($value, $key));
         }
 
-        return new PromiseWrapper(\React\Promise\all($reactPromises));
+        return $this->promiseAll(...$promises);
     }
 
     /**
@@ -136,7 +133,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRace(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(\React\Promise\race(
-            Internal\PromiseWrapper::toReactPromiseArray(...$promises)
+            Internal\PromiseWrapper::toYieldedReactPromiseArray(...$promises)
         ));
     }
 

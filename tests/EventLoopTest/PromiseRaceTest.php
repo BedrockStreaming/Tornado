@@ -85,4 +85,30 @@ trait PromiseRaceTest
         $this->expectExceptionCode($expectedValue);
         $eventLoop->wait($promise);
     }
+
+    public function testPromiseRaceCatchableException()
+    {
+        $eventLoop = $this->createEventLoop();
+
+        $throwingGenerator = (function () use ($eventLoop): \Generator {
+            yield $eventLoop->idle();
+            throw new \Exception('This is a failure');
+        })();
+
+        $createGenerator = function () use ($eventLoop, $throwingGenerator): \Generator {
+            try {
+                yield $eventLoop->promiseRace(
+                    $eventLoop->async($throwingGenerator),
+                    $eventLoop->delay(1000)
+                );
+            } catch (\Exception $e) {
+                return 'catched!';
+            }
+        };
+
+        $this->assertSame(
+            'catched!',
+            $eventLoop->wait($eventLoop->async($createGenerator()))
+        );
+    }
 }

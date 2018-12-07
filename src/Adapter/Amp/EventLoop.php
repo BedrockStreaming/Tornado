@@ -85,7 +85,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(
-            \Amp\Promise\all(Internal\PromiseWrapper::toAmpPromiseArray(...$promises))
+            \Amp\Promise\all(Internal\PromiseWrapper::toYieldedAmpPromiseArray(...$promises))
         );
     }
 
@@ -94,14 +94,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseForeach($traversable, callable $function): Promise
     {
-        $ampPromises = [];
+        $promises = [];
         foreach ($traversable as $key => $value) {
-            $ampPromises[] = Internal\PromiseWrapper::downcast(
-                $this->async($function($value, $key))
-            )->getAmpPromise();
+            $promises[] = $this->async($function($value, $key));
         }
 
-        return new Internal\PromiseWrapper(\Amp\Promise\all($ampPromises));
+        return $this->promiseAll(...$promises);
     }
 
     /**
@@ -131,10 +129,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
+        $promises = Internal\PromiseWrapper::toYieldedAmpPromiseArray(...$promises);
+
         foreach ($promises as $index => $promise) {
-            new \Amp\Coroutine($wrapPromise(
-                Internal\PromiseWrapper::downcast($promise)->getAmpPromise()
-            ));
+            new \Amp\Coroutine($wrapPromise($promise));
         }
 
         return new Internal\PromiseWrapper($deferred->promise());
