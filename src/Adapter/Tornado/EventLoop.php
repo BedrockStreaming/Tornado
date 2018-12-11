@@ -86,7 +86,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                         $fnSafeGeneratorCallback($task, 'throw')
                     );
                 } catch (\Throwable $exception) {
-                    $task->getPromise()->throwOnDestructIfNotYielded($exception);
+                    $task->getPromise()->enableThrowOnDestructIfNotYielded();
                     $task->getPromise()->reject($exception);
                 }
 

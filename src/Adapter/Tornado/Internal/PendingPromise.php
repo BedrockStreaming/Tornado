@@ -15,18 +15,18 @@ class PendingPromise implements Promise
     private $callbacks = [];
     private $isSettled = false;
     private $hasBeenYielded = false;
-    private $exception;
+    private $throwOnDestructIfNotYielded = false;
 
     public function __destruct()
     {
-        if (!$this->hasBeenYielded && $this->exception) {
-            throw $this->exception;
+        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->throwable) {
+            throw $this->throwable;
         }
     }
 
-    public function throwOnDestructIfNotYielded(\Throwable $throwable)
+    public function enableThrowOnDestructIfNotYielded()
     {
-        $this->exception = $throwable;
+        $this->throwOnDestructIfNotYielded = true;
     }
 
     public static function downcast(Promise $promise): self
