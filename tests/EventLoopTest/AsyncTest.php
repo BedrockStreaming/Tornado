@@ -227,12 +227,13 @@ trait AsyncTest
             yield $eventLoop->idle();
         };
 
-        $ignoredBackgroundPromise = $eventLoop->async($failingGenerator());
+        $eventLoop->async($failingGenerator());
         $promiseSuccess = $eventLoop->async($waitingGenerator());
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('This is a failure');
         $eventLoop->wait($promiseSuccess);
+        gc_collect_cycles();
     }
 
     public function testEventLoopShouldNotThrowInCaseOfExplicitlyRejectedPromise()

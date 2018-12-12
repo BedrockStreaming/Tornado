@@ -22,7 +22,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $value = null;
         $isRejected = false;
         $promiseSettled = false;
-        Internal\PromiseWrapper::downcast($promise)->getReactPromise()->then(
+        Internal\PromiseWrapper::toWatchedReactPromise($promise)->then(
             function ($result) use (&$value, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
@@ -57,49 +57,37 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $fnWrapGenerator = function (\Generator $generator, callable $fnSuccess, callable $fnFailure) use (&$fnWrapGenerator) {
+        $fnWrapGenerator = function (\Generator $generator, Internal\Deferred $deferred) use (&$fnWrapGenerator) {
             try {
                 if (!$generator->valid()) {
-                    return $fnSuccess($generator->getReturn());
+                    $deferred->resolve($generator->getReturn());
                 }
                 Internal\PromiseWrapper::fromGenerator($generator)
                     ->getReactPromise()->then(
-                        function ($result) use ($generator, $fnSuccess, $fnFailure, $fnWrapGenerator) {
+                        function ($result) use ($generator, $deferred, $fnWrapGenerator) {
                             try {
                                 $generator->send($result);
-                                $fnWrapGenerator($generator, $fnSuccess, $fnFailure);
+                                $fnWrapGenerator($generator, $deferred);
                             } catch (\Throwable $throwable) {
-                                $fnFailure($throwable);
+                                $deferred->reject($throwable);
                             }
                         },
-                        function ($reason) use ($generator, $fnSuccess, $fnFailure, $fnWrapGenerator) {
+                        function ($reason) use ($generator, $deferred, $fnWrapGenerator) {
                             try {
                                 $generator->throw($reason);
-                                $fnWrapGenerator($generator, $fnSuccess, $fnFailure);
+                                $fnWrapGenerator($generator, $deferred);
                             } catch (\Throwable $throwable) {
-                                $fnFailure($throwable);
+                                $deferred->reject($throwable);
                             }
                         }
                     );
             } catch (\Throwable $throwable) {
-                $fnFailure($throwable);
+                $deferred->reject($throwable);
             }
         };
 
-        $deferred = new Internal\Deferred();
-        $fnWrapGenerator(
-            $generator,
-            [$deferred, 'resolve'],
-            function (\Throwable $throwable) use ($deferred) {
-                if ($deferred->getPromiseWrapper()->hasBeenYielded()) {
-                    $deferred->reject($throwable);
-                } else {
-                    $this->reactEventLoop->futureTick(function () use ($throwable) {
-                        throw $throwable;
-                    });
-                }
-            }
-        );
+        $deferred = Internal\Deferred::forAsync();
+        $fnWrapGenerator($generator, $deferred);
 
         return $deferred->getPromise();
     }
@@ -110,7 +98,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(\React\Promise\all(
-            Internal\PromiseWrapper::toYieldedReactPromiseArray(...$promises)
+            Internal\PromiseWrapper::toWatchedReactPromiseArray(...$promises)
         ));
     }
 
@@ -133,7 +121,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRace(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(\React\Promise\race(
-            Internal\PromiseWrapper::toYieldedReactPromiseArray(...$promises)
+            Internal\PromiseWrapper::toWatchedReactPromiseArray(...$promises)
         ));
     }
 

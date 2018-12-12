@@ -29,7 +29,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $promiseIsPending = true;
         $finalAction = function () {throw new \Error('Impossible to resolve the promise, no more task to execute..'); };
-        Internal\PendingPromise::downcast($promise)->addCallbacks(
+        Internal\PendingPromise::toWatchedPromise($promise)->addCallbacks(
             function ($value) use (&$finalAction, &$promiseIsPending) {
                 $promiseIsPending = false;
                 $finalAction = function () use ($value) {return $value; };
@@ -86,11 +86,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                         $fnSafeGeneratorCallback($task, 'throw')
                     );
                 } catch (\Throwable $exception) {
-                    if ($task->getPromise()->hasBeenYielded()) {
-                        $task->getPromise()->reject($exception);
-                    } else {
-                        throw $exception;
-                    }
+                    $task->getPromise()->enableThrowOnDestructIfNotYielded();
+                    $task->getPromise()->reject($exception);
                 }
 
                 $fnThrowIfNotNull($globalException);

@@ -15,10 +15,31 @@ class PendingPromise implements Promise
     private $callbacks = [];
     private $isSettled = false;
     private $hasBeenYielded = false;
+    private $throwOnDestructIfNotYielded = false;
+
+    public function __destruct()
+    {
+        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->throwable) {
+            throw $this->throwable;
+        }
+    }
+
+    public function enableThrowOnDestructIfNotYielded()
+    {
+        $this->throwOnDestructIfNotYielded = true;
+    }
 
     public static function downcast(Promise $promise): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
+
+        return $promise;
+    }
+
+    public static function toWatchedPromise(Promise $promise): self
+    {
+        $promise = self::downcast($promise);
+        $promise->hasBeenYielded = true;
 
         return $promise;
     }

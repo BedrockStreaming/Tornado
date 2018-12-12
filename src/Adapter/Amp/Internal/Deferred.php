@@ -26,6 +26,14 @@ class Deferred implements \M6Web\Tornado\Deferred
         $this->promise = new PromiseWrapper($this->ampDeferred->promise());
     }
 
+    public static function forAsync(): self
+    {
+        $self = new self();
+        $self->promise->enableThrowOnDestructIfNotYielded();
+
+        return $self;
+    }
+
     /**
      * {@inheritdoc}
      */

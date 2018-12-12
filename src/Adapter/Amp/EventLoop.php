@@ -13,7 +13,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         try {
-            return \Amp\Promise\wait(Internal\PromiseWrapper::downcast($promise)->getAmpPromise());
+            return \Amp\Promise\wait(Internal\PromiseWrapper::toWatchedAmpPromise($promise));
         } catch (\Error $error) {
             // Modify exceptions sent by Amp itself
             if ($error->getCode() !== 0) {
@@ -35,7 +35,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $wrapper = function (\Generator $generator, callable $fnSuccess, callable $fnFailure): \Generator {
+        $wrapper = function (\Generator $generator, Internal\Deferred $deferred): \Generator {
             try {
                 while ($generator->valid()) {
                     $blockingPromise = Internal\PromiseWrapper::fromGenerator($generator)->getAmpPromise();
@@ -55,26 +55,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     }
                 }
             } catch (\Throwable $throwable) {
-                $fnFailure($throwable);
+                $deferred->reject($throwable);
             }
 
-            $fnSuccess($generator->getReturn());
+            $deferred->resolve($generator->getReturn());
         };
 
-        $deferred = new Internal\Deferred();
-        new \Amp\Coroutine($wrapper(
-            $generator,
-            [$deferred, 'resolve'],
-            function (\Throwable $throwable) use ($deferred) {
-                if ($deferred->getPromiseWrapper()->hasBeenYielded()) {
-                    $deferred->reject($throwable);
-                } else {
-                    \Amp\Loop::defer(function () use ($throwable) {
-                        throw $throwable;
-                    });
-                }
-            }
-        ));
+        $deferred = Internal\Deferred::forAsync();
+        new \Amp\Coroutine($wrapper($generator, $deferred));
 
         return $deferred->getPromise();
     }
@@ -85,7 +73,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         return new Internal\PromiseWrapper(
-            \Amp\Promise\all(Internal\PromiseWrapper::toYieldedAmpPromiseArray(...$promises))
+            \Amp\Promise\all(Internal\PromiseWrapper::toWatchedAmpPromiseArray(...$promises))
         );
     }
 
@@ -129,7 +117,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
-        $promises = Internal\PromiseWrapper::toYieldedAmpPromiseArray(...$promises);
+        $promises = Internal\PromiseWrapper::toWatchedAmpPromiseArray(...$promises);
 
         foreach ($promises as $index => $promise) {
             new \Amp\Coroutine($wrapPromise($promise));
