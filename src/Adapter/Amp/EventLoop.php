@@ -56,6 +56,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 }
             } catch (\Throwable $throwable) {
                 $deferred->reject($throwable);
+
+                return;
             }
 
             $deferred->resolve($generator->getReturn());
