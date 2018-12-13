@@ -56,13 +56,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 }
             } catch (\Throwable $throwable) {
                 $deferred->reject($throwable);
+
+                return;
             }
 
             $deferred->resolve($generator->getReturn());
         };
 
         $deferred = Internal\Deferred::forAsync();
-        new \Amp\Coroutine($wrapper($generator, $deferred));
+        \Amp\Promise\rethrow(new \Amp\Coroutine($wrapper($generator, $deferred)));
 
         return $deferred->getPromise();
     }
@@ -120,7 +122,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $promises = Internal\PromiseWrapper::toWatchedAmpPromiseArray(...$promises);
 
         foreach ($promises as $index => $promise) {
-            new \Amp\Coroutine($wrapPromise($promise));
+            \Amp\Promise\rethrow(new \Amp\Coroutine($wrapPromise($promise)));
         }
 
         return new Internal\PromiseWrapper($deferred->promise());
