@@ -13,7 +13,7 @@ interface EventLoop
     public function wait(Promise $promise);
 
     /**
-     * Registers a generator in the event loop to executes it asynchronously.
+     * Registers a generator in the event loop to execute it asynchronously.
      * The returned promise will be resolved with the value returned by the generator.
      */
     public function async(\Generator $generator): Promise;
