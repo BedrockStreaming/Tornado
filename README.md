@@ -193,6 +193,22 @@ function waitException(Tornado\EventLoop $eventLoop)
 }
 ```
 
+When using [`EventLoop::async`](src/EventLoop.php),
+all exceptions thrown inside the generator will reject the returned [`Promise`](src/Promise.php).
+In case of a background computing you may ignore this [`Promise`](src/Promise.php) and not `yield` nor wait it,
+but *Tornado* will still catch thrown exceptions to prevent to miss them.
+By design, an ignored rejected [`Promise`](src/Promise.php) will throw its exception during its destruction.
+It means that if you **really** want to ignore all exceptions (really?),
+you have to catch and ignore them **explicitly** in your code.
+```php
+$ignoredPromise = $eventLoop->async((function() {
+  try {
+    yield from throwingGenerator();
+  } catch(\Throwable $throwable) {
+      // I want to ignore all exceptions for this function
+  }
+})());
+```  
 
 ## FAQ
 
