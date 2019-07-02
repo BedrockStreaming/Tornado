@@ -9,12 +9,11 @@ use PHPUnit\Framework\TestCase;
 
 abstract class EventLoopTest extends TestCase
 {
-    use
-        EventLoopTest\AsyncTest,
-        EventLoopTest\StreamsTest,
-        EventLoopTest\PromiseAllTest,
-        EventLoopTest\PromiseForeachTest,
-        EventLoopTest\PromiseRaceTest;
+    use EventLoopTest\AsyncTest;
+    use EventLoopTest\StreamsTest;
+    use EventLoopTest\PromiseAllTest;
+    use EventLoopTest\PromiseForeachTest;
+    use EventLoopTest\PromiseRaceTest;
 
     abstract protected function createEventLoop(): EventLoop;
 
