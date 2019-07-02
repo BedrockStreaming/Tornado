@@ -2,6 +2,7 @@
 
 namespace M6Web\Tornado\Adapter\Amp;
 
+use M6Web\Tornado\Adapter\Common;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -13,7 +14,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         try {
-            return \Amp\Promise\wait(Internal\PromiseWrapper::toWatchedAmpPromise($promise));
+            $result = \Amp\Promise\wait(
+                Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getAmpPromise()
+            );
+            $this->unhandledFailingPromises->throwIfWatchedFailingPromiseExists();
+
+            return $result;
         } catch (\Error $error) {
             // Modify exceptions sent by Amp itself
             if ($error->getCode() !== 0) {
@@ -35,10 +41,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $wrapper = function (\Generator $generator, Internal\Deferred $deferred): \Generator {
+        $wrapper = function (\Generator $generator, \Amp\Deferred $deferred): \Generator {
             try {
                 while ($generator->valid()) {
-                    $blockingPromise = Internal\PromiseWrapper::fromGenerator($generator)->getAmpPromise();
+                    $blockingPromise = $generator->current();
+                    if (!$blockingPromise instanceof Promise) {
+                        throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
+                    }
+                    $blockingPromise = Internal\PromiseWrapper::toHandledPromise(
+                        $blockingPromise,
+                        $this->unhandledFailingPromises
+                    )->getAmpPromise();
 
                     // Forwards promise value/exception to underlying generator
                     $blockingPromiseValue = null;
@@ -55,7 +68,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     }
                 }
             } catch (\Throwable $throwable) {
-                $deferred->reject($throwable);
+                $deferred->fail($throwable);
 
                 return;
             }
@@ -63,10 +76,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $deferred->resolve($generator->getReturn());
         };
 
-        $deferred = Internal\Deferred::forAsync();
+        $deferred = new \Amp\Deferred();
         \Amp\Promise\rethrow(new \Amp\Coroutine($wrapper($generator, $deferred)));
 
-        return $deferred->getPromise();
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -74,8 +87,19 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        return new Internal\PromiseWrapper(
-            \Amp\Promise\all(Internal\PromiseWrapper::toWatchedAmpPromiseArray(...$promises))
+        return Internal\PromiseWrapper::createUnhandled(
+            \Amp\Promise\all(
+                array_map(
+                    function (Promise $promise) {
+                        return Internal\PromiseWrapper::toHandledPromise(
+                            $promise,
+                            $this->unhandledFailingPromises
+                        )->getAmpPromise();
+                    },
+                    $promises
+                )
+            ),
+            $this->unhandledFailingPromises
         );
     }
 
@@ -119,13 +143,21 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
-        $promises = Internal\PromiseWrapper::toWatchedAmpPromiseArray(...$promises);
+        $promises = array_map(
+            function (Promise $promise) {
+                return Internal\PromiseWrapper::toHandledPromise(
+                    $promise,
+                    $this->unhandledFailingPromises
+                )->getAmpPromise();
+            },
+            $promises
+        );
 
         foreach ($promises as $index => $promise) {
             \Amp\Promise\rethrow(new \Amp\Coroutine($wrapPromise($promise)));
         }
 
-        return new Internal\PromiseWrapper($deferred->promise());
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -133,9 +165,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return new Internal\PromiseWrapper(
-            new \Amp\Success($value)
-        );
+        return Internal\PromiseWrapper::createHandled(new \Amp\Success($value));
     }
 
     /**
@@ -143,9 +173,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        return new Internal\PromiseWrapper(
-            new \Amp\Failure($throwable)
-        );
+        // Manually created promises are considered as handled.
+        return Internal\PromiseWrapper::createHandled(new \Amp\Failure($throwable));
     }
 
     /**
@@ -159,7 +188,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $deferred->resolve();
         });
 
-        return new Internal\PromiseWrapper($deferred->promise());
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -173,7 +202,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $deferred->resolve();
         });
 
-        return new Internal\PromiseWrapper($deferred->promise());
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -181,7 +210,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function deferred(): Deferred
     {
-        return new Internal\Deferred();
+        return new Internal\Deferred(
+            $deferred = new \Amp\Deferred(),
+            // Manually created promises are considered as handled.
+            Internal\PromiseWrapper::createHandled($deferred->promise())
+        );
     }
 
     /**
@@ -199,7 +232,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         );
 
-        return new Internal\PromiseWrapper($deferred->promise());
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -217,6 +250,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         );
 
-        return new Internal\PromiseWrapper($deferred->promise());
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
     }
+
+    public function __construct()
+    {
+        $this->unhandledFailingPromises = new Common\Internal\FailingPromiseCollection();
+    }
+
+    /** @var Common\Internal\FailingPromiseCollection */
+    private $unhandledFailingPromises;
 }
