@@ -2,6 +2,7 @@
 
 namespace M6Web\Tornado\Adapter\ReactPhp\Internal;
 
+use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Promise;
 
 /**
@@ -15,33 +16,40 @@ class PromiseWrapper implements Promise
      */
     private $reactPromise;
 
+    /** @var bool */
+    private $isHandled;
+
     /**
-     * @var \Throwable
+     * Use named (static) constructor instead
      */
-    private $exception;
-
-    private $hasBeenYielded = false;
-
-    private $throwOnDestructIfNotYielded = false;
-
-    public function __construct(\React\Promise\PromiseInterface $reactPromise)
+    private function __construct()
     {
-        $this->reactPromise = $reactPromise;
-        $this->reactPromise->then(null, function (\Throwable $reason) {
-            $this->exception = $reason;
-        });
     }
 
-    public function __destruct()
+    public static function createUnhandled(\React\Promise\PromiseInterface $reactPromise, FailingPromiseCollection $failingPromiseCollection)
     {
-        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->exception !== null) {
-            throw $this->exception;
-        }
+        $promiseWrapper = new self();
+        $promiseWrapper->isHandled = false;
+        $promiseWrapper->reactPromise = $reactPromise;
+        $promiseWrapper->reactPromise->then(
+            null,
+            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection) {
+                if ($reason !== null && !$promiseWrapper->isHandled) {
+                    $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
+                }
+            }
+        );
+
+        return $promiseWrapper;
     }
 
-    public function enableThrowOnDestructIfNotYielded()
+    public static function createHandled(\React\Promise\PromiseInterface $reactPromise)
     {
-        $this->throwOnDestructIfNotYielded = true;
+        $promiseWrapper = new self();
+        $promiseWrapper->isHandled = true;
+        $promiseWrapper->reactPromise = $reactPromise;
+
+        return $promiseWrapper;
     }
 
     public function getReactPromise(): \React\Promise\PromiseInterface
@@ -49,46 +57,13 @@ class PromiseWrapper implements Promise
         return $this->reactPromise;
     }
 
-    public static function downcast(Promise $promise): self
+    public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
-        return $promise;
-    }
-
-    public static function toWatchedReactPromise(Promise $promise): \React\Promise\PromiseInterface
-    {
-        $promise = self::downcast($promise);
-        $promise->hasBeenYielded = true;
-
-        return $promise->reactPromise;
-    }
-
-    public static function fromGenerator(\Generator $generator): self
-    {
-        $promise = $generator->current();
-        if (!$promise instanceof self) {
-            throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
-        }
-
-        $promise = self::downcast($promise);
-        $promise->hasBeenYielded = true;
+        $promise->isHandled = true;
+        $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;
-    }
-
-    /**
-     * @param Promise[] ...$promises
-     *
-     * @return \React\Promise\PromiseInterface[]
-     */
-    public static function toWatchedReactPromiseArray(Promise ...$promises): array
-    {
-        return array_map(function (Promise $promise) {
-            $promise = self::downcast($promise);
-            $promise->hasBeenYielded = true;
-
-            return $promise->reactPromise;
-        }, $promises);
     }
 }

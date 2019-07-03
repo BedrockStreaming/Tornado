@@ -20,18 +20,10 @@ class Deferred implements \M6Web\Tornado\Deferred
      */
     private $promise;
 
-    public function __construct()
+    public function __construct(\React\Promise\Deferred $reactDeferred, PromiseWrapper $promiseWrapper)
     {
-        $this->reactDeferred = new \React\Promise\Deferred();
-        $this->promise = new PromiseWrapper($this->reactDeferred->promise());
-    }
-
-    public static function forAsync(): self
-    {
-        $self = new self();
-        $self->promise->enableThrowOnDestructIfNotYielded();
-
-        return $self;
+        $this->reactDeferred = $reactDeferred;
+        $this->promise = $promiseWrapper;
     }
 
     /**
