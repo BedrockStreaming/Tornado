@@ -2,64 +2,56 @@
 
 namespace M6Web\Tornado\Adapter\Tornado\Internal;
 
+use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
+use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
  */
-class PendingPromise implements Promise
+class PendingPromise implements Promise, Deferred
 {
     private $value;
     private $throwable;
     private $callbacks = [];
     private $isSettled = false;
-    private $hasBeenYielded = false;
-    private $throwOnDestructIfNotYielded = false;
+    /** @var ?FailingPromiseCollection */
+    private $failingPromiseCollection;
 
-    public function __destruct()
+    /**
+     * Use named (static) constructor instead
+     */
+    private function __construct()
     {
-        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->throwable) {
-            throw $this->throwable;
-        }
     }
 
-    public function enableThrowOnDestructIfNotYielded()
+    public static function createUnhandled(FailingPromiseCollection $failingPromiseCollection)
     {
-        $this->throwOnDestructIfNotYielded = true;
+        $promiseWrapper = new self();
+        $promiseWrapper->failingPromiseCollection = $failingPromiseCollection;
+
+        return $promiseWrapper;
     }
 
-    public static function downcast(Promise $promise): self
+    public static function createHandled()
+    {
+        $promiseWrapper = new self();
+        $promiseWrapper->failingPromiseCollection = null;
+
+        return $promiseWrapper;
+    }
+
+    public static function toHandledPromise(Promise $promise): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
-        return $promise;
-    }
-
-    public static function toWatchedPromise(Promise $promise): self
-    {
-        $promise = self::downcast($promise);
-        $promise->hasBeenYielded = true;
-
-        return $promise;
-    }
-
-    public static function fromGenerator(\Generator $generator): self
-    {
-        $promise = $generator->current();
-        if (!$promise instanceof self) {
-            throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
+        if ($promise->failingPromiseCollection !== null) {
+            $promise->failingPromiseCollection->unwatchPromise($promise);
+            $promise->failingPromiseCollection = null;
         }
 
-        $promise = self::downcast($promise);
-        $promise->hasBeenYielded = true;
-
         return $promise;
-    }
-
-    public function hasBeenYielded(): bool
-    {
-        return $this->hasBeenYielded;
     }
 
     public function resolve($value): self
@@ -75,7 +67,16 @@ class PendingPromise implements Promise
         $this->settle();
         $this->throwable = $throwable;
 
+        if ($this->failingPromiseCollection !== null) {
+            $this->failingPromiseCollection->watchFailingPromise($this, $throwable);
+        }
+
         return $this->triggerCallbacks();
+    }
+
+    public function getPromise(): Promise
+    {
+        return $this;
     }
 
     public function addCallbacks(callable $onResolved, callable $onRejected): self
