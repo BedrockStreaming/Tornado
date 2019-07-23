@@ -26,12 +26,13 @@ $eventLoop = new Adapter\Tornado\EventLoop();
 //$eventLoop = new Adapter\Amp\EventLoop();
 //$eventLoop = new Adapter\ReactPhp\EventLoop(new React\EventLoop\StreamSelectLoop());
 
+echo "Let's start!\n";
+
 // We can't get directly the result of an asynchronous function,
 // but the event loop gives us a promise.
 $promiseAlice10 = $eventLoop->async(asynchronousCountdown($eventLoop, 'Alice', 10));
 $promiseBob4 = $eventLoop->async(asynchronousCountdown($eventLoop, 'Bob', 4));
 
-echo "Let's start!\n";
 // Run the event loop until our goal promise is reached.
 $result = $eventLoop->wait(
     // We group both promises in one, to run them concurrently.
