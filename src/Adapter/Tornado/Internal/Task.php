@@ -11,10 +11,10 @@ class Task
     private $generator;
     private $promise;
 
-    public function __construct(\Generator $generator)
+    public function __construct(\Generator $generator, PendingPromise $pendingPromise)
     {
         $this->generator = $generator;
-        $this->promise = new PendingPromise();
+        $this->promise = $pendingPromise;
     }
 
     public function getPromise(): PendingPromise

@@ -2,6 +2,7 @@
 
 namespace M6Web\Tornado\Adapter\Amp\Internal;
 
+use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Promise;
 
 /**
@@ -15,33 +16,39 @@ class PromiseWrapper implements Promise
      */
     private $ampPromise;
 
+    /** @var bool */
+    private $isHandled;
+
     /**
-     * @var ?\Throwable
+     * Use named (static) constructor instead
      */
-    private $exception;
-
-    private $hasBeenYielded = false;
-
-    private $throwOnDestructIfNotYielded = false;
-
-    public function __construct(\Amp\Promise $ampPromise)
+    private function __construct()
     {
-        $this->ampPromise = $ampPromise;
-        $this->ampPromise->onResolve(function (?\Throwable $reason, $value) {
-            $this->exception = $reason;
-        });
     }
 
-    public function __destruct()
+    public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection)
     {
-        if ($this->throwOnDestructIfNotYielded && !$this->hasBeenYielded && $this->exception !== null) {
-            throw $this->exception;
-        }
+        $promiseWrapper = new self();
+        $promiseWrapper->isHandled = false;
+        $promiseWrapper->ampPromise = $ampPromise;
+        $promiseWrapper->ampPromise->onResolve(
+            function (?\Throwable $reason, $value) use ($promiseWrapper, $failingPromiseCollection) {
+                if ($reason !== null && !$promiseWrapper->isHandled) {
+                    $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
+                }
+            }
+        );
+
+        return $promiseWrapper;
     }
 
-    public function enableThrowOnDestructIfNotYielded()
+    public static function createHandled(\Amp\Promise $ampPromise)
     {
-        $this->throwOnDestructIfNotYielded = true;
+        $promiseWrapper = new self();
+        $promiseWrapper->isHandled = true;
+        $promiseWrapper->ampPromise = $ampPromise;
+
+        return $promiseWrapper;
     }
 
     public function getAmpPromise(): \Amp\Promise
@@ -49,45 +56,13 @@ class PromiseWrapper implements Promise
         return $this->ampPromise;
     }
 
-    public static function downcast(Promise $promise): self
+    public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
-        return $promise;
-    }
-
-    public static function toWatchedAmpPromise(Promise $promise): \Amp\Promise
-    {
-        $promise = self::downcast($promise);
-        $promise->hasBeenYielded = true;
-
-        return $promise->getAmpPromise();
-    }
-
-    public static function fromGenerator(\Generator $generator): self
-    {
-        $promise = $generator->current();
-        if (!$promise instanceof self) {
-            throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
-        }
-        $promise = self::downcast($promise);
-        $promise->hasBeenYielded = true;
+        $promise->isHandled = true;
+        $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;
-    }
-
-    /**
-     * @param Promise[] ...$promises
-     *
-     * @return \Amp\Promise[]
-     */
-    public static function toWatchedAmpPromiseArray(Promise ...$promises): array
-    {
-        return array_map(function (Promise $promise) {
-            $promise = self::downcast($promise);
-            $promise->hasBeenYielded = true;
-
-            return $promise->ampPromise;
-        }, $promises);
     }
 }

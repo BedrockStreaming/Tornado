@@ -2,24 +2,25 @@
 
 namespace M6Web\Tornado\Adapter\Tornado;
 
+use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
-    /**
-     * @var Internal\StreamEventLoop
-     */
+    /** @var Internal\StreamEventLoop */
     private $streamLoop;
 
-    /**
-     * @var Internal\Task[]
-     */
+    /** @var Internal\Task[] */
     private $tasks = [];
+
+    /** @var FailingPromiseCollection */
+    private $unhandledFailingPromises;
 
     public function __construct()
     {
         $this->streamLoop = new Internal\StreamEventLoop();
+        $this->unhandledFailingPromises = new FailingPromiseCollection();
     }
 
     /**
@@ -29,7 +30,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $promiseIsPending = true;
         $finalAction = function () {throw new \Error('Impossible to resolve the promise, no more task to execute..'); };
-        Internal\PendingPromise::toWatchedPromise($promise)->addCallbacks(
+        Internal\PendingPromise::toHandledPromise($promise)->addCallbacks(
             function ($value) use (&$finalAction, &$promiseIsPending) {
                 $promiseIsPending = false;
                 $finalAction = function () use ($value) {return $value; };
@@ -45,29 +46,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return count($this->tasks) !== 0;
         };
 
-        $fnThrowIfNotNull = function (?\Throwable $throwable) {
-            if ($throwable !== null) {
-                throw $throwable;
-            }
-        };
-
-        $globalException = null;
-        // Returns a callback to propagate a value to a generator via $function
-        $fnSafeGeneratorCallback = function (Internal\Task $task, string $function) use (&$globalException) {
-            return function ($value) use ($task, $function, &$globalException) {
-                try {
-                    $task->getGenerator()->$function($value);
-                    $this->tasks[] = $task;
-                } catch (\Throwable $exception) {
-                    if ($task->getPromise()->hasBeenYielded()) {
-                        $task->getPromise()->reject($exception);
-                    } else {
-                        $globalException = $exception;
-                    }
-                }
-            };
-        };
-
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
@@ -80,19 +58,36 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                         continue;
                     }
 
-                    $blockingPromise = Internal\PendingPromise::fromGenerator($task->getGenerator());
+                    $blockingPromise = $task->getGenerator()->current();
+                    if (!$blockingPromise instanceof Internal\PendingPromise) {
+                        throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
+                    }
+                    $blockingPromise = Internal\PendingPromise::toHandledPromise($blockingPromise);
                     $blockingPromise->addCallbacks(
-                        $fnSafeGeneratorCallback($task, 'send'),
-                        $fnSafeGeneratorCallback($task, 'throw')
+                        function ($value) use ($task) {
+                            try {
+                                $task->getGenerator()->send($value);
+                                $this->tasks[] = $task;
+                            } catch (\Throwable $exception) {
+                                $task->getPromise()->reject($exception);
+                            }
+                        },
+                        function (\Throwable $throwable) use ($task) {
+                            try {
+                                $task->getGenerator()->throw($throwable);
+                                $this->tasks[] = $task;
+                            } catch (\Throwable $exception) {
+                                $task->getPromise()->reject($exception);
+                            }
+                        }
                     );
                 } catch (\Throwable $exception) {
-                    $task->getPromise()->enableThrowOnDestructIfNotYielded();
                     $task->getPromise()->reject($exception);
                 }
-
-                $fnThrowIfNotNull($globalException);
             }
         } while ($promiseIsPending && $somethingToDo());
+
+        $this->unhandledFailingPromises->throwIfWatchedFailingPromiseExists();
 
         return $finalAction();
     }
@@ -102,7 +97,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $this->tasks[] = ($task = new Internal\Task($generator));
+        $this->tasks[] = ($task = new Internal\Task(
+            $generator,
+            Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises))
+        );
 
         return $task->getPromise();
     }
@@ -117,7 +115,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled([]);
         }
 
-        $globalPromise = new Internal\PendingPromise();
+        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
         $allResults = array_fill(0, $nbPromises, false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
@@ -168,7 +166,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled(null);
         }
 
-        $globalPromise = new Internal\PendingPromise();
+        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
         $isFirstPromise = true;
 
         $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
@@ -198,7 +196,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return (new Internal\PendingPromise())->resolve($value);
+        return Internal\PendingPromise::createHandled()->resolve($value);
     }
 
     /**
@@ -206,7 +204,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        return (new Internal\PendingPromise())->reject($throwable);
+        // Manually created promises are considered as handled.
+        return Internal\PendingPromise::createHandled()->reject($throwable);
     }
 
     /**
@@ -240,7 +239,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function deferred(): Deferred
     {
-        return new Internal\Deferred();
+        // Manually created promises are considered as handled.
+        return Internal\PendingPromise::createHandled();
     }
 
     /**

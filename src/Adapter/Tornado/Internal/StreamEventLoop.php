@@ -70,7 +70,7 @@ class StreamEventLoop
         if (isset($this->pendingPromises[$streamId])) {
             return $this->pendingPromises[$streamId];
         }
-        $this->pendingPromises[$streamId] = ($pendingPromise = new PendingPromise());
+        $this->pendingPromises[$streamId] = ($pendingPromise = PendingPromise::createHandled());
         $streamsList[$streamId] = $stream;
 
         if (count($this->pendingPromises) === 1) {

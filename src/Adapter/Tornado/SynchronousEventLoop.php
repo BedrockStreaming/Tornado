@@ -22,7 +22,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
             throw $throwable;
         }
 
-        $promise = Internal\PendingPromise::downcast($promise);
+        assert($promise instanceof Internal\PendingPromise, 'Input promise was not created by this adapter.');
         $result = null;
         $promise->addCallbacks(
             function ($value) use (&$result) {
@@ -43,7 +43,11 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     {
         try {
             while ($generator->valid()) {
-                Internal\PendingPromise::fromGenerator($generator)->addCallbacks(
+                $promise = $generator->current();
+                if (!$promise instanceof Internal\PendingPromise) {
+                    throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
+                }
+                $promise->addCallbacks(
                     function ($value) use ($generator) {
                         $generator->send($value);
                     },
@@ -109,7 +113,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return (new Internal\PendingPromise())->resolve($value);
+        return Internal\PendingPromise::createHandled()->resolve($value);
     }
 
     /**
@@ -117,7 +121,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        return (new Internal\PendingPromise())->reject($throwable);
+        return Internal\PendingPromise::createHandled()->reject($throwable);
     }
 
     /**
@@ -146,6 +150,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     public function deferred(): Deferred
     {
         $deferred = new class() implements Deferred {
+            /** @var SynchronousEventLoop */
             public $eventLoop;
             private $promise;
 
