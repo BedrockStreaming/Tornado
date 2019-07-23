@@ -54,15 +54,15 @@ class PendingPromise implements Promise, Deferred
         return $promise;
     }
 
-    public function resolve($value): self
+    public function resolve($value): void
     {
         $this->settle();
         $this->value = $value;
 
-        return $this->triggerCallbacks();
+        $this->triggerCallbacks();
     }
 
-    public function reject(\Throwable $throwable): self
+    public function reject(\Throwable $throwable): void
     {
         $this->settle();
         $this->throwable = $throwable;
@@ -71,7 +71,7 @@ class PendingPromise implements Promise, Deferred
             $this->failingPromiseCollection->watchFailingPromise($this, $throwable);
         }
 
-        return $this->triggerCallbacks();
+        $this->triggerCallbacks();
     }
 
     public function getPromise(): Promise

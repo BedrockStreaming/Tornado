@@ -42,7 +42,7 @@ class Deferred implements \M6Web\Tornado\Deferred
     /**
      * {@inheritdoc}
      */
-    public function resolve($value)
+    public function resolve($value): void
     {
         $this->reactDeferred->resolve($value);
     }
@@ -50,7 +50,7 @@ class Deferred implements \M6Web\Tornado\Deferred
     /**
      * {@inheritdoc}
      */
-    public function reject(\Throwable $throwable)
+    public function reject(\Throwable $throwable): void
     {
         $this->reactDeferred->reject($throwable);
     }

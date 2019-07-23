@@ -196,7 +196,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return Internal\PendingPromise::createHandled()->resolve($value);
+        $promise = Internal\PendingPromise::createHandled();
+        $promise->resolve($value);
+
+        return $promise;
     }
 
     /**
@@ -205,7 +208,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRejected(\Throwable $throwable): Promise
     {
         // Manually created promises are considered as handled.
-        return Internal\PendingPromise::createHandled()->reject($throwable);
+        $promise = Internal\PendingPromise::createHandled();
+        $promise->reject($throwable);
+
+        return $promise;
     }
 
     /**

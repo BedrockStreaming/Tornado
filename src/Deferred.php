@@ -15,10 +15,10 @@ interface Deferred
     /**
      * Resolves associated promise.
      */
-    public function resolve($value);
+    public function resolve($value): void;
 
     /**
      * Rejects associated promise.
      */
-    public function reject(\Throwable $throwable);
+    public function reject(\Throwable $throwable): void;
 }
