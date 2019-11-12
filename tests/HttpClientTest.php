@@ -11,10 +11,7 @@ use PHPUnit\Framework\TestCase;
 abstract class HttpClientTest extends TestCase
 {
     /**
-     * @param EventLoop $eventLoop
-     * @param array     $responsesOrExceptions Psr7\Response to return, or \Exception to throw
-     *
-     * @return HttpClient
+     * @param array $responsesOrExceptions Psr7\Response to return, or \Exception to throw
      */
     abstract protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): HttpClient;
 
@@ -33,14 +30,14 @@ abstract class HttpClientTest extends TestCase
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,
-            [new Response(200, [], 'Example Domain')]
+            [new Response(200, [], 'This is a test')]
         );
         $request = new Request('GET', 'http://www.example.com');
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertContains('Example Domain', (string) $response->getBody());
+        $this->assertContains('This is a test', (string) $response->getBody());
     }
 
     /**
@@ -58,6 +55,24 @@ abstract class HttpClientTest extends TestCase
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
         $this->assertSame(404, $response->getStatusCode());
+    }
+
+    /**
+     * @dataProvider eventLoopProvider
+     */
+    public function testGetServerErrorUrl(EventLoop $eventLoop)
+    {
+        $httpClient = $this->createHttpClient(
+            $eventLoop,
+            [new Response(500, [], 'Error')]
+        );
+
+        $request = new Request('GET', 'http://www.example.com/500');
+
+        $response = $eventLoop->wait($httpClient->sendRequest($request));
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertContains('Error', (string) $response->getBody());
     }
 
     /**
