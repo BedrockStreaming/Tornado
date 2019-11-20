@@ -33,6 +33,7 @@ class HttpClient implements \M6Web\Tornado\HttpClient
      */
     public function sendRequest(RequestInterface $request): Promise
     {
+        $request = $this->http2fallback($request);
         $deferred = $this->eventLoop->deferred();
 
         $this->clientWrapper->getClient()->sendAsync($request)->then(
@@ -57,6 +58,25 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         }
 
         return $deferred->getPromise();
+    }
+
+    private function http2fallback(RequestInterface $request): RequestInterface
+    {
+        if ($request->getProtocolVersion() !== '2.0') {
+            return $request;
+        }
+
+        // Check that HTTP/2 is effectively supported by the system, and fallback to HTTP/1.1 if needed.
+        // Inspired from https://github.com/symfony/http-client/blob/master/CurlHttpClient.php
+        if (
+            'https' !== $request->getUri()->getScheme()
+            || !\defined('CURL_VERSION_HTTP2')
+            || !(CURL_VERSION_HTTP2 & curl_version()['features'])
+        ) {
+            return $request->withProtocolVersion('1.1');
+        }
+
+        return $request;
     }
 
     private function guzzleEventLoop(): \Generator
