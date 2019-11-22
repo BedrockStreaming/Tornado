@@ -30,8 +30,6 @@ interface EventLoop
      *
      * @param \Traversable|array $traversable Input elements
      * @param callable           $function    must return a generator from an input value, and an optional key
-     *
-     * @return Promise
      */
     public function promiseForeach($traversable, callable $function): Promise;
 
@@ -71,8 +69,6 @@ interface EventLoop
      * Returns a promise that will be resolved with the input stream when it becomes readable.
      *
      * @param resource $stream
-     *
-     * @return Promise
      */
     public function readable($stream): Promise;
 
@@ -80,8 +76,6 @@ interface EventLoop
      * Returns a promise that will be resolved with the input stream when it becomes writable.
      *
      * @param resource $stream
-     *
-     * @return Promise
      */
     public function writable($stream): Promise;
 }

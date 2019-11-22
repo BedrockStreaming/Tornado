@@ -50,13 +50,29 @@ class ExamplesTest extends TestCase
         }
     }
 
+    private function extractExampleCode(string $exampleFile): iterable
+    {
+        $originalContent = file($exampleFile);
+
+        foreach ($this->selectEventLoop($originalContent) as $nameEL => $contentEL) {
+            $exampleUseHttpClient = false;
+
+            foreach ($this->selectHttpClient($contentEL) as $nameHC => $contentELHC) {
+                $exampleUseHttpClient = true;
+                yield "$nameEL - $nameHC" => implode('', $contentELHC);
+            }
+
+            if (!$exampleUseHttpClient) {
+                yield $nameEL => implode('', $contentEL);
+            }
+        }
+    }
+
     /**
      * Very naive approach to iterate over various eventLoop implementations.
      */
-    private function extractExampleCode(string $exampleFiles): iterable
+    private function selectEventLoop(array $originalContent): iterable
     {
-        $originalContent = file($exampleFiles);
-
         foreach ($originalContent as &$line) {
             if (false === strpos($line, '$eventLoop = new ')) {
                 continue;
@@ -68,7 +84,30 @@ class ExamplesTest extends TestCase
             // Enable current eventLoop
             $line = ltrim($line, '/');
 
-            yield $name => implode('', $originalContent);
+            yield $name => $originalContent;
+
+            // Disable this eventLoop
+            $line = "//$line";
+        }
+    }
+
+    /**
+     * Very naive approach to iterate over various httpClient implementations.
+     */
+    private function selectHttpClient(array $originalContent): iterable
+    {
+        foreach ($originalContent as &$line) {
+            if (false === strpos($line, '$httpClient = new ')) {
+                continue;
+            }
+
+            // Extract relevant name
+            $name = strstr(strstr($line, '(', true), 'Adapter\\');
+
+            // Enable current eventLoop
+            $line = ltrim($line, '/');
+
+            yield $name => $originalContent;
 
             // Disable this eventLoop
             $line = "//$line";
