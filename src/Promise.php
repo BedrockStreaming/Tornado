@@ -7,4 +7,5 @@ namespace M6Web\Tornado;
  */
 interface Promise
 {
+    public function cancel();
 }

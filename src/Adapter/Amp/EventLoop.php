@@ -165,7 +165,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return Internal\PromiseWrapper::createHandled(new \Amp\Success($value));
+        return Internal\PromiseWrapper::createHandled(new \Amp\Success($value), function () {
+        });
     }
 
     /**
@@ -174,7 +175,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRejected(\Throwable $throwable): Promise
     {
         // Manually created promises are considered as handled.
-        return Internal\PromiseWrapper::createHandled(new \Amp\Failure($throwable));
+        return Internal\PromiseWrapper::createHandled(new \Amp\Failure($throwable), function () {
+        });
     }
 
     /**
@@ -208,12 +210,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    public function deferred(callable $canceller = null): Deferred
     {
         return new Internal\Deferred(
             $deferred = new \Amp\Deferred(),
             // Manually created promises are considered as handled.
-            Internal\PromiseWrapper::createHandled($deferred->promise())
+            Internal\PromiseWrapper::createHandled($deferred->promise(), function () {})
         );
     }
 

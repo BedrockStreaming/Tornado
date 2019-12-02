@@ -63,7 +63,7 @@ interface EventLoop
     /**
      * Creates a deferred, allowing to create and resolve your own promises.
      */
-    public function deferred(): Deferred;
+    public function deferred(callable $canceller = null): Deferred;
 
     /**
      * Returns a promise that will be resolved with the input stream when it becomes readable.

@@ -208,10 +208,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    public function deferred(callable $canceller = null): Deferred
     {
         return new Internal\Deferred(
-            $deferred = new \React\Promise\Deferred(),
+            $deferred = new \React\Promise\Deferred($canceller),
             // Manually created promises are considered as handled.
             Internal\PromiseWrapper::createHandled($deferred->promise())
         );

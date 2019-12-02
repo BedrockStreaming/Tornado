@@ -3,6 +3,7 @@
 namespace M6Web\Tornado\Adapter\Tornado\Internal;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
+use M6Web\Tornado\CancelledException;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -15,6 +16,9 @@ class PendingPromise implements Promise, Deferred
     private $value;
     private $throwable;
     private $callbacks = [];
+    private $cancelled = false;
+    /** @var callable */
+    private $cancellation;
     private $isSettled = false;
     /** @var ?FailingPromiseCollection */
     private $failingPromiseCollection;
@@ -26,17 +30,32 @@ class PendingPromise implements Promise, Deferred
     {
     }
 
-    public static function createUnhandled(FailingPromiseCollection $failingPromiseCollection)
+    public function cancel()
+    {
+        if (!$this->canceled && !$this->isSettled) {
+            ($this->cancellation)();
+            $this->cancelled = true;
+        }
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled;
+    }
+
+    public static function createUnhandled(FailingPromiseCollection $failingPromiseCollection, callable $cancellation = null)
     {
         $promiseWrapper = new self();
         $promiseWrapper->failingPromiseCollection = $failingPromiseCollection;
+        $promiseWrapper->cancellation = $cancellation ?? function() {};
 
         return $promiseWrapper;
     }
 
-    public static function createHandled()
+    public static function createHandled(callable $cancellation = null)
     {
         $promiseWrapper = new self();
+        $promiseWrapper->cancellation = $cancellation ?? function() {};
         $promiseWrapper->failingPromiseCollection = null;
 
         return $promiseWrapper;
@@ -105,6 +124,10 @@ class PendingPromise implements Promise, Deferred
 
     private function settle()
     {
+        if ($this->isCancelled()) {
+            throw new CancelledException('already cancelled.');
+        }
+
         if ($this->isSettled) {
             throw new \LogicException('Cannot resolve/reject a promise already settled.');
         }

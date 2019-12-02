@@ -46,6 +46,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return count($this->tasks) !== 0;
         };
 
+        if (method_exists($promise, 'isCancelled') && $promise->isCancelled()) {
+            throw new CancelledException('cancelled wait');
+        }
+
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
@@ -196,7 +200,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        $promise = Internal\PendingPromise::createHandled();
+        $promise = Internal\PendingPromise::createHandled(function () {});
         $promise->resolve($value);
 
         return $promise;
@@ -208,7 +212,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRejected(\Throwable $throwable): Promise
     {
         // Manually created promises are considered as handled.
-        $promise = Internal\PendingPromise::createHandled();
+        $promise = Internal\PendingPromise::createHandled(function () {});
         $promise->reject($throwable);
 
         return $promise;
@@ -243,10 +247,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    public function deferred(callable $canceller = null): Deferred
     {
         // Manually created promises are considered as handled.
-        return Internal\PendingPromise::createHandled();
+        return Internal\PendingPromise::createHandled($canceller);
     }
 
     /**
