@@ -5,6 +5,7 @@ namespace M6Web\Tornado\Adapter\ReactPhp;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
+use React\EventLoop\TimerInterface;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
@@ -181,7 +182,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        $deferred = $this->deferred();
+        /** @var Deferred $deferred */
+        $deferred = null;
+
+        $deferred = $this->deferred(
+            function () use (&$deferred) {
+                $deferred->reject(new \M6Web\Tornado\CancelledException());
+            }
+        );
         $this->reactEventLoop->futureTick(function () use ($deferred) {
             $deferred->resolve(null);
         });
@@ -194,8 +202,19 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        $deferred = $this->deferred();
-        $this->reactEventLoop->addTimer(
+        /** @var TimerInterface $timer */
+        $timer = null;
+        /** @var Deferred $deferred */
+        $deferred = null;
+
+        $deferred = $this->deferred(
+            function () use (&$deferred, &$timer) {
+                $this->reactEventLoop->cancelTimer($timer);
+                $deferred->reject(new \M6Web\Tornado\CancelledException());
+            }
+        );
+
+        $timer = $this->reactEventLoop->addTimer(
             $milliseconds / 1000 /* milliseconds per second */,
             function () use ($deferred) {
                 $deferred->resolve(null);

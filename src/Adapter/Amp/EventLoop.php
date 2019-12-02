@@ -3,6 +3,7 @@
 namespace M6Web\Tornado\Adapter\Amp;
 
 use M6Web\Tornado\Adapter\Common;
+    use M6Web\Tornado\CancelledException;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -186,11 +187,16 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $deferred = new \Amp\Deferred();
 
-        \Amp\Loop::defer(function () use ($deferred) {
+        $id = \Amp\Loop::defer(function () use ($deferred) {
             $deferred->resolve();
         });
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        $cancellation = function () use ($id, $deferred) {
+            \Amp\Loop::cancel($id);
+            $deferred->fail(new CancelledException('Delay cancelled'));
+        };
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises, $cancellation);
     }
 
     /**
@@ -200,11 +206,16 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $deferred = new \Amp\Deferred();
 
-        \Amp\Loop::delay($milliseconds, function () use ($deferred) {
+        $delayId = \Amp\Loop::delay($milliseconds, function () use ($deferred) {
             $deferred->resolve();
         });
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        $cancellation = function () use ($delayId, $deferred) {
+            \Amp\Loop::cancel($delayId);
+            $deferred->fail(new CancelledException('Delay cancelled'));
+        };
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises, $cancellation);
     }
 
     /**

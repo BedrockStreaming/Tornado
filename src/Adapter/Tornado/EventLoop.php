@@ -235,13 +235,23 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
+        /** @var PendingPromise $promise */
+        $promise = null;
         $endTime = microtime(true) + $milliseconds / 1000 /* milliseconds in 1 second */;
 
-        return $this->async((function () use ($endTime): \Generator {
+        $promise = $this->async((function () use ($endTime, &$promise): \Generator {
             while (microtime(true) < $endTime) {
-                yield $this->idle();
+                try {
+                    yield $this->idle();
+                } catch (\Throwable $throwable) {
+                    $promise->reject($throwable);
+                    return new CancelledException('cancelled kiki');
+                }
             }
+
         })());
+
+        return $promise;
     }
 
     /**
