@@ -37,6 +37,7 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         /** @var Deferred $deferred */
         $deferred = null;
         $request = $this->http2fallback($request);
+        $deferred = $this->eventLoop->deferred();
 
         $guzzlePromise = $this->clientWrapper->getClient()->sendAsync($request)->then(
             function (ResponseInterface $response) use (&$deferred) {
