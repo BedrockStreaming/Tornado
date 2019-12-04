@@ -32,7 +32,7 @@ class PendingPromise implements Promise, Deferred
 
     public function cancel()
     {
-        if (!$this->canceled && !$this->isSettled) {
+        if (!$this->cancelled && !$this->isSettled()) {
             ($this->cancellation)();
             $this->cancelled = true;
         }
@@ -102,7 +102,7 @@ class PendingPromise implements Promise, Deferred
     {
         $this->callbacks[] = [$onResolved, $onRejected];
 
-        return $this->isSettled ? $this->triggerCallbacks() : $this;
+        return $this->isSettled() ? $this->triggerCallbacks() : $this;
     }
 
     private function triggerCallbacks(): self
@@ -120,6 +120,11 @@ class PendingPromise implements Promise, Deferred
         $this->callbacks = [];
 
         return $this;
+    }
+
+    public function isSettled(): bool
+    {
+        return $this->isSettled;
     }
 
     private function settle()
