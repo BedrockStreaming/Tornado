@@ -276,7 +276,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         );
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        $cancellation = function () {};
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises, $cancellation);
     }
 
     /**
@@ -294,7 +296,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         );
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        $cancellation = function () {};
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises, $cancellation);
     }
 
     public function __construct()
