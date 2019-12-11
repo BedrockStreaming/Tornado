@@ -16,6 +16,8 @@ abstract class EventLoopTest extends TestCase
     use EventLoopTest\PromiseForeachTest;
     use EventLoopTest\PromiseRaceTest;
 
+    const LONG_WAITING_TIME = 10000;
+
     abstract protected function createEventLoop(): EventLoop;
 
     public function testFulfilledPromise()

@@ -22,6 +22,24 @@
         <testsuite name="Tornado Examples">
             <directory>examples/tests</directory>
         </testsuite>
+        <testsuite name="Amp">
+            <directory>/usr/local/var/www/Tornado/tests/Adapter/Amp/EventLoopTest.php</directory>
+        </testsuite>
+        <testsuite name="Guzzle">
+            <directory>/usr/local/var/www/Tornado/tests/Adapter/Guzzle/HttpClientTest.php</directory>
+        </testsuite>
+        <testsuite name="ReactPhp">
+            <directory>/usr/local/var/www/Tornado/tests/Adapter/ReactPhp/EventLoopTest.php</directory>
+        </testsuite>
+        <testsuite name="Symfony">
+            <directory>/usr/local/var/www/Tornado/tests/Adapter/Symfony/HttpClientTest.php</directory>
+        </testsuite>
+        <testsuite name="Tornado">
+            <file>/usr/local/var/www/Tornado/tests/Adapter/Tornado/EventLoopTest.php</file>
+        </testsuite>
+        <testsuite name="Tornado Synchronous">
+            <file>/usr/local/var/www/Tornado/tests/Adapter/Tornado/SynchronousEventLoopTest.php</file>
+        </testsuite>
     </testsuites>
 
     <filter>
