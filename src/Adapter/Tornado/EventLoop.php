@@ -134,12 +134,20 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
+        $waitOnePromise = null;
         $nbPromises = count($promises);
         if ($nbPromises === 0) {
             return $this->promiseFulfilled([]);
         }
-
-        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
+        $asyncPromises = [];
+        $globalPromise = Internal\PendingPromise::createUnhandled(
+            $this->unhandledFailingPromises,
+            function () use (&$asyncPromises) {
+                foreach ($asyncPromises as $asyncPromise) {
+                    $asyncPromise->cancel();
+                }
+            }
+        );
         $allResults = array_fill(0, $nbPromises, false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
@@ -162,7 +170,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         foreach ($promises as $index => $promise) {
-            $this->async($waitOnePromise($index, $promise));
+            $asyncPromises[] = $this->async($waitOnePromise($index, $promise));
         }
 
         return $globalPromise;
@@ -186,11 +194,25 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
+        $cancellation = null;
+        $promisesCancellation = null;
+        $wrappedPromise = [];
         if (empty($promises)) {
             return $this->promiseFulfilled(null);
         }
 
-        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
+
+        $promisesCancellation = function () use (&$wrappedPromise) {
+            foreach ($wrappedPromise as $index => $promise) {
+                $promise->cancel();
+            }
+        };
+
+        $cancellation = function () use (&$promisesCancellation) {
+            ($promisesCancellation)();
+        };
+
+        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises, $cancellation);
         $isFirstPromise = true;
 
         $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
@@ -209,7 +231,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         foreach ($promises as $index => $promise) {
-            $this->async($wrapPromise($promise));
+            $wrappedPromise[] = $this->async($wrapPromise($promise));
         }
 
         return $globalPromise;

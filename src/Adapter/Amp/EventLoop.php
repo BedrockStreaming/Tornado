@@ -3,7 +3,7 @@
 namespace M6Web\Tornado\Adapter\Amp;
 
 use M6Web\Tornado\Adapter\Common;
-    use M6Web\Tornado\CancelledException;
+use M6Web\Tornado\CancelledException;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -96,19 +96,27 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
+        $cancellable = function () use (&$promises) {
+            foreach ($promises as $promise) {
+                $promise->cancel();
+            }
+        };
+
         return Internal\PromiseWrapper::createUnhandled(
             \Amp\Promise\all(
                 array_map(
                     function (Promise $promise) {
-                        return Internal\PromiseWrapper::toHandledPromise(
+                        $wrappedPromise = Internal\PromiseWrapper::toHandledPromise(
                             $promise,
                             $this->unhandledFailingPromises
-                        )->getAmpPromise();
+                        );
+
+                        return $wrappedPromise->getAmpPromise();
                     },
                     $promises
                 )
             ),
-            $this->unhandledFailingPromises
+            $this->unhandledFailingPromises, $cancellable
         );
     }
 
@@ -130,6 +138,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
+        $toWrapPromises = [];
+        $promisesCancellation = null;
         if (empty($promises)) {
             return $this->promiseFulfilled(null);
         }
@@ -153,11 +163,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         $promises = array_map(
-            function (Promise $promise) {
-                return Internal\PromiseWrapper::toHandledPromise(
+            function (Promise $promise) use (&$toWrapPromises) {
+                $tempPromise = Internal\PromiseWrapper::toHandledPromise(
                     $promise,
                     $this->unhandledFailingPromises
-                )->getAmpPromise();
+                );
+                $toWrapPromises[] = $tempPromise;
+
+                return $tempPromise->getAmpPromise();
             },
             $promises
         );
@@ -165,8 +178,18 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         foreach ($promises as $index => $promise) {
             \Amp\Promise\rethrow(new \Amp\Coroutine($wrapPromise($promise)));
         }
+        $promisesCancellation = function () use (&$toWrapPromises) {
+            foreach ($toWrapPromises as $index => $promise) {
+                $promise->cancel();
+            }
+        };
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        $cancellation = function () use (&$deferred, &$promisesCancellation) {
+            $deferred->fail(new CancelledException('promise race cancellation'));
+            ($promisesCancellation)();
+        };
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises, $cancellation);
     }
 
     /**
