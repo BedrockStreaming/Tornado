@@ -66,7 +66,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator) {
+        /** @var Promise $currentPromise */
+        $currentPromise = null;
+        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator, &$currentPromise) {
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
@@ -75,6 +77,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 if (!$promise instanceof Internal\PromiseWrapper) {
                     throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
                 }
+
+                $currentPromise = $promise;
+
                 Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)
                     ->getReactPromise()->then(
                         function ($result) use ($generator, $deferred, $fnWrapGenerator) {
@@ -99,7 +104,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
-        $deferred = new \React\Promise\Deferred();
+        $deferred = new \React\Promise\Deferred(function () use (&$currentPromise) {
+            $currentPromise->cancel();
+        });
+
         $fnWrapGenerator($generator, $deferred);
 
         return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);

@@ -42,13 +42,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $wrapper = function (\Generator $generator, \Amp\Deferred $deferred): \Generator {
+        /** @var Promise $currentPromise */
+        $currentPromise = null;
+
+        $wrapper = function (\Generator $generator, \Amp\Deferred $deferred) use (&$currentPromise): \Generator {
             try {
                 while ($generator->valid()) {
                     $blockingPromise = $generator->current();
                     if (!$blockingPromise instanceof Promise) {
-                        throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
+                        throw new \Error('Asynchronous function is yielding a [' . gettype($blockingPromise) . '] instead of a Promise.');
                     }
+                    $currentPromise = $blockingPromise;
                     $blockingPromise = Internal\PromiseWrapper::toHandledPromise(
                         $blockingPromise,
                         $this->unhandledFailingPromises
@@ -80,7 +84,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $deferred = new \Amp\Deferred();
         \Amp\Promise\rethrow(new \Amp\Coroutine($wrapper($generator, $deferred)));
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        $cancellable = function () use (&$currentPromise) {
+            $currentPromise->cancel();
+        };
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises, $cancellable);
     }
 
     /**

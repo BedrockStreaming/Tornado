@@ -3,6 +3,9 @@
 namespace M6Web\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
+use M6Web\Tornado\Adapter\Tornado\Internal\PendingPromise;
+use M6Web\Tornado\Adapter\Tornado\Internal\Task;
+use M6Web\Tornado\CancelledException;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -56,6 +59,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->tasks = [];
             foreach ($allTasks as $task) {
                 try {
+                    if ($task->getPromise()->isCancelled()) {
+                        continue;
+                    }
                     if (!$task->getGenerator()->valid()) {
                         $task->getPromise()->resolve($task->getGenerator()->getReturn());
                         // This task is finished
@@ -101,10 +107,24 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $this->tasks[] = ($task = new Internal\Task(
-            $generator,
-            Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises))
+        /** @var Task $task */
+        $task = null;
+        /** @var PendingPromise $promise */
+        $promise = null;
+
+        $promise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises,
+            function () use (&$task, &$promise) {
+                if ($task->getGenerator()->current()) {
+                    $promise->reject(new CancelledException('async cancellation'));
+                    $currentPromise = $task->getGenerator()->current();
+                    if (method_exists($currentPromise, 'isCanceled') && !$currentPromise->isCanceled()) {
+                        $currentPromise->cancel();
+                    }
+                }
+            }
         );
+
+        $this->tasks[] = ($task = new Internal\Task($generator, $promise));
 
         return $task->getPromise();
     }
