@@ -10,7 +10,6 @@ use PHPUnit\Framework\TestCase;
 abstract class EventLoopTest extends TestCase
 {
     use EventLoopTest\AsyncTest;
-    use EventLoopTest\CancellationTest;
     use EventLoopTest\StreamsTest;
     use EventLoopTest\PromiseAllTest;
     use EventLoopTest\PromiseForeachTest;

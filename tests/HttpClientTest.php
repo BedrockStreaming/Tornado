@@ -4,6 +4,7 @@ namespace M6WebTest\Tornado;
 
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use M6Web\Tornado\CancelledException;
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
 use PHPUnit\Framework\TestCase;
