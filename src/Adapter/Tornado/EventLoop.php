@@ -116,8 +116,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             function () use (&$task, &$promise) {
                 if ($task->getGenerator()->current()) {
                     $promise->reject(new CancelledException('async cancellation'));
+                    /** @var PendingPromise $currentPromise */
                     $currentPromise = $task->getGenerator()->current();
-                    if (method_exists($currentPromise, 'isCanceled') && !$currentPromise->isCanceled()) {
+                    if (!$currentPromise->isCancelled()) {
                         $currentPromise->cancel();
                     }
                 }
@@ -200,7 +201,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         if (empty($promises)) {
             return $this->promiseFulfilled(null);
         }
-
 
         $promisesCancellation = function () use (&$wrappedPromise) {
             foreach ($wrappedPromise as $index => $promise) {
@@ -287,10 +287,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     yield $this->idle();
                 } catch (\Throwable $throwable) {
                     $promise->reject($throwable);
-                    return new CancelledException('cancelled kiki');
+
+                    return new CancelledException('cancelled promise');
                 }
             }
-
         })());
 
         return $promise;

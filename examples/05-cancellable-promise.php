@@ -12,10 +12,9 @@ $eventLoop = new Adapter\Tornado\EventLoop();
 //$eventLoop = new Adapter\Amp\EventLoop();
 //$eventLoop = new Adapter\ReactPhp\EventLoop(new React\EventLoop\StreamSelectLoop());
 
-
 function timer(EventLoop $eventLoop, string $id, int $time, \M6Web\Tornado\Promise &$promise = null)
 {
-    $result = "not resolved";
+    $result = 'not resolved';
     try {
         echo "[$id] Starting to wait $time …\n";
         yield $eventLoop->delay($time);
@@ -32,13 +31,13 @@ function timer(EventLoop $eventLoop, string $id, int $time, \M6Web\Tornado\Promi
     } catch (\Exception $e) {
         echo "[$id] XXX Cancelled …\n";
     }
+
     return $result;
 }
 
 echo "Let's start!\n";
 
 try {
-
     $result = $eventLoop->wait(
         $eventLoop->promiseAll(
             $p1 = $eventLoop->async(timer($eventLoop, 'A', 100)),
@@ -46,9 +45,9 @@ try {
         )
     );
 } catch (\M6Web\Tornado\CancelledException $e) {
-    $result = "cancelled promise";
+    $result = 'cancelled promise';
 } catch (\Exception $e) {
-    $result = "other exception";
+    $result = 'other exception';
 }
 
 echo "async cancellation result :\n";

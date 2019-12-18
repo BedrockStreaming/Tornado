@@ -50,7 +50,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 while ($generator->valid()) {
                     $blockingPromise = $generator->current();
                     if (!$blockingPromise instanceof Promise) {
-                        throw new \Error('Asynchronous function is yielding a [' . gettype($blockingPromise) . '] instead of a Promise.');
+                        throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
                     }
                     $currentPromise = $blockingPromise;
                     $blockingPromise = Internal\PromiseWrapper::toHandledPromise(

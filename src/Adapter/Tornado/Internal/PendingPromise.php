@@ -47,7 +47,7 @@ class PendingPromise implements Promise, Deferred
     {
         $promiseWrapper = new self();
         $promiseWrapper->failingPromiseCollection = $failingPromiseCollection;
-        $promiseWrapper->cancellation = $cancellation ?? function() {};
+        $promiseWrapper->cancellation = $cancellation ?? function () {};
 
         return $promiseWrapper;
     }
@@ -55,7 +55,7 @@ class PendingPromise implements Promise, Deferred
     public static function createHandled(callable $cancellation = null)
     {
         $promiseWrapper = new self();
-        $promiseWrapper->cancellation = $cancellation ?? function() {};
+        $promiseWrapper->cancellation = $cancellation ?? function () {};
         $promiseWrapper->failingPromiseCollection = null;
 
         return $promiseWrapper;
