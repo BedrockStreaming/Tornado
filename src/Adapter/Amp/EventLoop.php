@@ -116,7 +116,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     $promises
                 )
             ),
-            $this->unhandledFailingPromises, $cancellable
+            $this->unhandledFailingPromises,
+            $cancellable
         );
     }
 
@@ -197,8 +198,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return Internal\PromiseWrapper::createHandled(new \Amp\Success($value), function () {
-        });
+        return Internal\PromiseWrapper::createHandled(
+            new \Amp\Success($value),
+            function () {
+            }
+        );
     }
 
     /**
@@ -207,8 +211,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRejected(\Throwable $throwable): Promise
     {
         // Manually created promises are considered as handled.
-        return Internal\PromiseWrapper::createHandled(new \Amp\Failure($throwable), function () {
-        });
+        return Internal\PromiseWrapper::createHandled(
+            new \Amp\Failure($throwable),
+            function () {
+            }
+        );
     }
 
     /**
@@ -218,12 +225,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $deferred = new \Amp\Deferred();
 
-        $id = \Amp\Loop::defer(function () use ($deferred) {
+        $deferedId = \Amp\Loop::defer(function () use ($deferred) {
             $deferred->resolve();
         });
 
-        $cancellation = function () use ($id, $deferred) {
-            \Amp\Loop::cancel($id);
+        $cancellation = function () use ($deferedId, $deferred) {
+            \Amp\Loop::cancel($deferedId);
             $deferred->fail(new CancelledException('Delay cancelled'));
         };
 
