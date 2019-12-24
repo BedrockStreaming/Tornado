@@ -9,7 +9,17 @@ trait CancellationTest
 {
     abstract protected function createEventLoop(): EventLoop;
 
-    public function testCanceledPromiseThrowException()
+    public function testIdleThrowACancelledException()
+    {
+        $eventLoop = $this->createEventLoop();
+        $promise = $eventLoop->idle();
+        $promise->cancel();
+
+        $this->expectException(CancelledException::class);
+        $eventLoop->wait($promise);
+    }
+
+    public function testDelayPromiseThrowException()
     {
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->delay(self::LONG_WAITING_TIME);
@@ -53,16 +63,6 @@ trait CancellationTest
             return 'success';
         })()));
         $this->assertSame('success', $result);
-    }
-
-    public function testCancellationThrowAnCancelledException()
-    {
-        $eventLoop = $this->createEventLoop();
-        $promise = $eventLoop->idle();
-        $promise->cancel();
-
-        $this->expectException(CancelledException::class);
-        $eventLoop->wait($promise);
     }
 
     public function testComplexAsync()
