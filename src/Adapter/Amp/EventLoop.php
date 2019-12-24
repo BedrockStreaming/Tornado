@@ -106,12 +106,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             \Amp\Promise\all(
                 array_map(
                     function (Promise $promise) {
-                        $wrappedPromise = Internal\PromiseWrapper::toHandledPromise(
+                        return Internal\PromiseWrapper::toHandledPromise(
                             $promise,
                             $this->unhandledFailingPromises
-                        );
-
-                        return $wrappedPromise->getAmpPromise();
+                        )->getAmpPromise();
                     },
                     $promises
                 )
