@@ -7,5 +7,9 @@ namespace M6Web\Tornado;
  */
 interface Promise
 {
-    public function cancel();
+    /**
+     * Requests the cancellation of the promise.
+     * Functions still yielding for this promise will receive a `CancelledException`.
+     */
+    public function cancel(): void;
 }

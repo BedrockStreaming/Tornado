@@ -30,7 +30,7 @@ class PendingPromise implements Promise, Deferred
     {
     }
 
-    public function cancel()
+    public function cancel(): void
     {
         if (!$this->cancelled && !$this->isSettled()) {
             ($this->cancellation)();

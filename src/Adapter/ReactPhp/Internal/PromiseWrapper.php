@@ -26,7 +26,7 @@ class PromiseWrapper implements Promise
     {
     }
 
-    public function cancel()
+    public function cancel(): void
     {
         $this->reactPromise->cancel();
     }
