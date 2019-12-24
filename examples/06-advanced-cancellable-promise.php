@@ -7,9 +7,9 @@ use M6Web\Tornado\Adapter;
 use M6Web\Tornado\EventLoop;
 
 // Choose your adapter.
-//$eventLoop = new Adapter\Tornado\EventLoop();
+$eventLoop = new Adapter\Tornado\EventLoop();
 //$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
-$eventLoop = new Adapter\Amp\EventLoop();
+//$eventLoop = new Adapter\Amp\EventLoop();
 //$eventLoop = new Adapter\ReactPhp\EventLoop(new React\EventLoop\StreamSelectLoop());
 
 function timer(EventLoop $eventLoop, string $id, int $time, \M6Web\Tornado\Promise &$promise = null)
@@ -66,7 +66,7 @@ try {
     $result = 'other exception';
 }
 
-echo "async cancellation with result concervation:\n";
+echo "async cancellation with result conservation:\n";
 
 var_dump($result);
 
