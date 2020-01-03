@@ -3,6 +3,9 @@
 namespace M6Web\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
+use M6Web\Tornado\Adapter\Tornado\Internal\PendingPromise;
+use M6Web\Tornado\Adapter\Tornado\Internal\Task;
+use M6Web\Tornado\CancellationException;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 
@@ -46,12 +49,19 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return count($this->tasks) !== 0;
         };
 
+        if (method_exists($promise, 'isCancelled') && $promise->isCancelled()) {
+            throw new CancellationException('cancelled wait');
+        }
+
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
             $allTasks = $this->tasks;
             $this->tasks = [];
             foreach ($allTasks as $task) {
                 try {
+                    if ($task->getPromise()->isCancelled()) {
+                        continue;
+                    }
                     if (!$task->getGenerator()->valid()) {
                         $task->getPromise()->resolve($task->getGenerator()->getReturn());
                         // This task is finished
@@ -97,10 +107,25 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $this->tasks[] = ($task = new Internal\Task(
-            $generator,
-            Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises))
+        /** @var Task $task */
+        $task = null;
+        /** @var PendingPromise $promise */
+        $promise = null;
+
+        $promise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises,
+            function () use (&$task, &$promise) {
+                if ($task->getGenerator()->current()) {
+                    $promise->reject(new CancellationException('async cancellation'));
+                    /** @var PendingPromise $currentPromise */
+                    $currentPromise = $task->getGenerator()->current();
+                    if (!$currentPromise->isCancelled()) {
+                        $currentPromise->cancel();
+                    }
+                }
+            }
         );
+
+        $this->tasks[] = ($task = new Internal\Task($generator, $promise));
 
         return $task->getPromise();
     }
@@ -110,12 +135,20 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
+        $waitOnePromise = null;
         $nbPromises = count($promises);
         if ($nbPromises === 0) {
             return $this->promiseFulfilled([]);
         }
-
-        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
+        $asyncPromises = [];
+        $globalPromise = Internal\PendingPromise::createUnhandled(
+            $this->unhandledFailingPromises,
+            function () use (&$asyncPromises) {
+                foreach ($asyncPromises as $asyncPromise) {
+                    $asyncPromise->cancel();
+                }
+            }
+        );
         $allResults = array_fill(0, $nbPromises, false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
@@ -138,7 +171,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         foreach ($promises as $index => $promise) {
-            $this->async($waitOnePromise($index, $promise));
+            $asyncPromises[] = $this->async($waitOnePromise($index, $promise));
         }
 
         return $globalPromise;
@@ -162,11 +195,24 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
+        $cancellation = null;
+        $promisesCancellation = null;
+        $wrappedPromise = [];
         if (empty($promises)) {
             return $this->promiseFulfilled(null);
         }
 
-        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
+        $promisesCancellation = function () use (&$wrappedPromise) {
+            foreach ($wrappedPromise as $index => $promise) {
+                $promise->cancel();
+            }
+        };
+
+        $cancellation = function () use (&$promisesCancellation) {
+            ($promisesCancellation)();
+        };
+
+        $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises, $cancellation);
         $isFirstPromise = true;
 
         $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
@@ -185,7 +231,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         foreach ($promises as $index => $promise) {
-            $this->async($wrapPromise($promise));
+            $wrappedPromise[] = $this->async($wrapPromise($promise));
         }
 
         return $globalPromise;
@@ -196,7 +242,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        $promise = Internal\PendingPromise::createHandled();
+        $promise = Internal\PendingPromise::createHandled(function () {});
         $promise->resolve($value);
 
         return $promise;
@@ -208,7 +254,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRejected(\Throwable $throwable): Promise
     {
         // Manually created promises are considered as handled.
-        $promise = Internal\PendingPromise::createHandled();
+        $promise = Internal\PendingPromise::createHandled(function () {});
         $promise->reject($throwable);
 
         return $promise;
@@ -231,22 +277,32 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
+        /** @var PendingPromise $promise */
+        $promise = null;
         $endTime = microtime(true) + $milliseconds / 1000 /* milliseconds in 1 second */;
 
-        return $this->async((function () use ($endTime): \Generator {
+        $promise = $this->async((function () use ($endTime, &$promise): \Generator {
             while (microtime(true) < $endTime) {
-                yield $this->idle();
+                try {
+                    yield $this->idle();
+                } catch (\Throwable $throwable) {
+                    $promise->reject($throwable);
+
+                    return new CancellationException('cancelled promise');
+                }
             }
         })());
+
+        return $promise;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    public function deferred(callable $cancelCallback = null): Deferred
     {
         // Manually created promises are considered as handled.
-        return Internal\PendingPromise::createHandled();
+        return Internal\PendingPromise::createHandled($cancelCallback);
     }
 
     /**

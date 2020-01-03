@@ -5,6 +5,7 @@ namespace M6Web\Tornado\Adapter\ReactPhp;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
+use React\EventLoop\TimerInterface;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
@@ -65,7 +66,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator) {
+        /** @var Promise $currentPromise */
+        $currentPromise = null;
+        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator, &$currentPromise) {
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
@@ -74,6 +77,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 if (!$promise instanceof Internal\PromiseWrapper) {
                     throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
                 }
+
+                $currentPromise = $promise;
+
                 Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)
                     ->getReactPromise()->then(
                         function ($result) use ($generator, $deferred, $fnWrapGenerator) {
@@ -98,7 +104,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
-        $deferred = new \React\Promise\Deferred();
+        $deferred = new \React\Promise\Deferred(function () use (&$currentPromise) {
+            $currentPromise->cancel();
+        });
+
         $fnWrapGenerator($generator, $deferred);
 
         return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
@@ -181,7 +190,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        $deferred = $this->deferred();
+        /** @var Deferred $deferred */
+        $deferred = null;
+
+        $deferred = $this->deferred(
+            function () use (&$deferred) {
+                $deferred->reject(new \M6Web\Tornado\CancellationException());
+            }
+        );
         $this->reactEventLoop->futureTick(function () use ($deferred) {
             $deferred->resolve(null);
         });
@@ -194,8 +210,19 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        $deferred = $this->deferred();
-        $this->reactEventLoop->addTimer(
+        /** @var TimerInterface $timer */
+        $timer = null;
+        /** @var Deferred $deferred */
+        $deferred = null;
+
+        $deferred = $this->deferred(
+            function () use (&$deferred, &$timer) {
+                $this->reactEventLoop->cancelTimer($timer);
+                $deferred->reject(new \M6Web\Tornado\CancellationException());
+            }
+        );
+
+        $timer = $this->reactEventLoop->addTimer(
             $milliseconds / 1000 /* milliseconds per second */,
             function () use ($deferred) {
                 $deferred->resolve(null);
@@ -208,10 +235,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    public function deferred(callable $cancelCallback = null): Deferred
     {
         return new Internal\Deferred(
-            $deferred = new \React\Promise\Deferred(),
+            $deferred = new \React\Promise\Deferred($cancelCallback),
             // Manually created promises are considered as handled.
             Internal\PromiseWrapper::createHandled($deferred->promise())
         );

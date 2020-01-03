@@ -4,6 +4,7 @@ namespace M6WebTest\Tornado;
 
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use M6Web\Tornado\CancellationException;
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
 use PHPUnit\Framework\TestCase;
@@ -149,5 +150,54 @@ abstract class HttpClientTest extends TestCase
                 )
             )
         );
+    }
+
+    /**
+     * @dataProvider eventLoopProvider
+     */
+    public function testHttpRequestsCancellation(EventLoop $eventLoop)
+    {
+        $delayCancellation = 20;
+        $delayRequestExecution = 200;
+        $msgCancellation = 'canceller resolved';
+        $msgResolvedRequest = 'Simple response should be reachable only on schyronous mode';
+
+        $httpClient = $this->createHttpClient($eventLoop, [new Response(200, [], $msgResolvedRequest)]);
+
+        $getResponseWithDelay = function (string $url, int $delayRequestExecution) use ($httpClient, $eventLoop): \Generator {
+            yield $eventLoop->delay($delayRequestExecution);
+
+            return (string) (yield $httpClient->sendRequest(new Request('GET', $url)))->getBody();
+        };
+
+        $response = null;
+        try {
+            $response = $eventLoop->wait(
+                $eventLoop->promiseAll(
+                    $promise = $eventLoop->async($getResponseWithDelay('http://www.example.com', $delayRequestExecution)),
+                    $eventLoop->async($this->canceller($eventLoop, $delayCancellation, $promise))
+                )
+            );
+        } catch (CancellationException $e) {
+            $response = $msgCancellation;
+        } catch (\Throwable $e) {
+            $response = 'other Exception: '.$e->getMessage();
+        }
+
+        $actual = $msgCancellation;
+        $description = $this->dataDescription();
+        if ($description === 'Tornado (synchronous)') {
+            $actual = [$msgResolvedRequest, $actual];
+        }
+
+        $this->assertEquals($response, $actual);
+    }
+
+    private function canceller(EventLoop $eventLoop, int $time, \M6Web\Tornado\Promise &$promise)
+    {
+        yield $eventLoop->delay($time);
+        $promise->cancel();
+
+        return 'canceller resolved';
     }
 }

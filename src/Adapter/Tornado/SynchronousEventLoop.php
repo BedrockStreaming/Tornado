@@ -153,7 +153,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    public function deferred(callable $cancelCallback = null): Deferred
     {
         $deferred = new class() implements Deferred {
             /** @var SynchronousEventLoop */

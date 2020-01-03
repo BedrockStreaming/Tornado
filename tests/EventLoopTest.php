@@ -14,6 +14,9 @@ abstract class EventLoopTest extends TestCase
     use EventLoopTest\PromiseAllTest;
     use EventLoopTest\PromiseForeachTest;
     use EventLoopTest\PromiseRaceTest;
+    use EventLoopTest\CancellationTest;
+
+    const LONG_WAITING_TIME = 10000;
 
     abstract protected function createEventLoop(): EventLoop;
 
