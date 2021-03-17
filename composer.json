@@ -15,7 +15,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "M6WebTest\\Tornado\\": "tests/"
+            "M6WebTest\\Tornado\\": "tests/",
+            "M6WebExamples\\Tornado\\": "examples/"
         }
     },
     "require": {
