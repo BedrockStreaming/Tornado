@@ -7,7 +7,7 @@
         {
             "name": "M6Web",
             "email": "opensource@m6web.fr",
-            "homepage": "http://tech.m6web.fr/"
+            "homepage": "https://tech.bedrockstreaming.com"
         }
     ],
     "autoload": {
@@ -15,7 +15,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "M6WebTest\\Tornado\\": "tests/"
+            "M6WebTest\\Tornado\\": "tests/",
+            "M6WebExamples\\Tornado\\": "examples/"
         }
     },
     "require": {
