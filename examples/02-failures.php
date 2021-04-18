@@ -19,6 +19,7 @@ $eventLoop = new Adapter\Tornado\EventLoop();
 //$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
 //$eventLoop = new Adapter\Amp\EventLoop();
 //$eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
+//$eventLoop = new Tornado\Adapter\Swoole\EventLoop();
 
 echo "Let's start!\n";
 

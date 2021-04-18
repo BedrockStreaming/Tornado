@@ -101,6 +101,7 @@ $eventLoop = new Tornado\Adapter\Tornado\EventLoop();
 //$eventLoop = new Tornado\Adapter\Tornado\SynchronousEventLoop();
 //$eventLoop = new Tornado\Adapter\Amp\EventLoop();
 //$eventLoop = new Tornado\Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
+//$eventLoop = new Tornado\Adapter\Swoole\EventLoop();
 
 // Tornado provides only one HttpClient implementation, using Guzzle
 $httpClient = new Tornado\Adapter\Guzzle\HttpClient($eventLoop, new Tornado\Adapter\Guzzle\CurlMultiClientWrapper());
