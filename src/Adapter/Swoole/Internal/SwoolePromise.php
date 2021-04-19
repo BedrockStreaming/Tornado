@@ -180,39 +180,45 @@ final class SwoolePromise implements Promise
             $ticks = count($promises);
 
             $firstError = null;
-            $channel    = new Channel($ticks);
+            //$channel    = new Channel($ticks);
             $result     = [];
             $key        = 0;
             foreach ($promises as $promise) {
                 if (!$promise instanceof SwoolePromise) {
-                    $channel->close();
+                    //$channel->close();
                     throw new RuntimeException(
                         'Supported only SwoolePromise instance'
                     );
                 }
-                $promise->then(function ($value) use ($key, &$result, $channel) {
+                $promise->then(function ($value) use ($key, &$result, &$ticks, $resolve/* $channel*/) {
                     $result[$key] = $value;
-                    $channel->push(true);
+                    $ticks--;
+                    //$channel->push(true);
+                    if($ticks === 0) {
+                        $resolve($result);
+                    }
                     return $value;
-                }, function ($error) use ($channel, &$firstError) {
-                    $channel->push(true);
+                }, function ($error) use (/*$channel, */&$firstError, &$ticks, $reject) {
+                    //$channel->push(true);
+                    $ticks--;
                     if ($firstError === null) {
                         $firstError = $error;
+                        $reject($firstError);
                     }
                 });
                 $key++;
             }
-            while ($ticks--) {
-                $channel->pop();
-            }
-            $channel->close();
+            //while ($ticks--) {
+            //    $channel->pop();
+            //}
+            //$channel->close();
 
-            if ($firstError !== null) {
+            /*if ($firstError !== null) {
                 $reject($firstError);
                 return;
             }
 
-            $resolve($result);
+            $resolve($result);*/
         });
     }
 
