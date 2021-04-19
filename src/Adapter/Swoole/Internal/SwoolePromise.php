@@ -232,11 +232,11 @@ final class SwoolePromise implements Promise
             };
             $value->then($callable, $callable);
             // resolve async locking error (code to remove)
-            while (!$resolved) {
+            //while (!$resolved) {
                 // @codeCoverageIgnoreStart
-                usleep(self::PROMISE_WAIT);
+                //usleep(self::PROMISE_WAIT);
                 // @codeCoverageIgnoreEnd
-            }
+            //}
         } else if ($this->isPending()) {
             $this->result = $value;
             $this->setState($state);

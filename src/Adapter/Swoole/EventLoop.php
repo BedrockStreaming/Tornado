@@ -35,36 +35,41 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $isRejected = false;
         $promiseSettled = false;
 
-        Coroutine::create(function() use ($promise, &$value, &$isRejected, &$promiseSettled) {
-            $ticks = 1;
-            //$wg = new WaitGroup(1);
-            $channel = new Channel($ticks);
-            Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getSwoolePromise()->then(
-                function ($result) use (/* $wg , */$channel, &$value, &$promiseSettled) {
-                    $promiseSettled = true;
-                    $value = $result;
-                    $channel->push(true);
-                    //$wg->done();
-                },
-                function ($result) use (/* $wg , */$channel, &$value, &$isRejected, &$promiseSettled) {
-                    $promiseSettled = true;
-                    $value = $result;
-                    $isRejected = true;
-                    $channel->push(true);
-                    //$wg->done();
-                }
-            );
-            while ($ticks--) {
-                $channel->pop();
+        //Coroutine::create(function() use ($promise, &$value, &$isRejected, &$promiseSettled) {
+        $ticks = 1;
+        //$wg = new WaitGroup(1);
+        //$channel = new Channel($ticks);
+        Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getSwoolePromise()->then(
+            function ($result) use (/* $wg , $channel, */&$value, &$promiseSettled) {
+                $promiseSettled = true;
+                $value = $result;
+                //$channel->push(true);
+                //$wg->done();
+                Event::exit();
+            },
+            function ($result) use (/* $wg , $channel, */&$value, &$isRejected, &$promiseSettled) {
+                $promiseSettled = true;
+                $value = $result;
+                $isRejected = true;
+                //$channel->push(true);
+                //$wg->done();
+                Event::exit();
             }
-            $channel->close();
-            //$wg->wait();
-        });
-        while (!$promiseSettled) {
-            // @codeCoverageIgnoreStart
-            usleep(SwoolePromise::PROMISE_WAIT);
-            // @codeCoverageIgnoreEnd
+        );
+        if (!$promiseSettled) {
+            Event::wait();
         }
+        //while ($ticks--) {
+            //$channel->pop();
+        //}
+        //$channel->close();
+        //$wg->wait();
+        //});
+        //while (!$promiseSettled) {
+            // @codeCoverageIgnoreStart
+            //usleep(SwoolePromise::PROMISE_WAIT);
+            // @codeCoverageIgnoreEnd
+        //}
         //Event::wait();
         //swoole_event_wait();
 

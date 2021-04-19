@@ -167,7 +167,7 @@ abstract class EventLoopTest extends TestCase
 
     public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved()
     {
-        /*$eventLoop = $this->createEventLoop();
+        $eventLoop = $this->createEventLoop();
         $count = 0;
         $unfinishedGenerator = function (EventLoop $eventLoop, int &$count): \Generator {
             while (++$count < 10) {
@@ -178,38 +178,6 @@ abstract class EventLoopTest extends TestCase
         $eventLoop->async($unfinishedGenerator($eventLoop, $count));
         $result = $eventLoop->wait($eventLoop->promiseFulfilled('value'));
 
-        $this->assertSame('value', $result);
-        $this->assertLessThanOrEqual(2, $count);*/
-
-        $wait = function($cid) {
-            $result = null;
-            $n = new Atomic();
-            Coroutine::create(function () use (&$result, $n) {
-                echo "coucou1\n";
-                Coroutine::sleep(0.001);
-                echo "coucou2\n";
-                $result = 'value';
-                $n->wakeup();
-            });
-
-            $n->wait(0.001);
-            echo "end wait***\n";
-
-            return $result;
-        };
-        $count = 0;
-        $cid = Coroutine::create(function() use (&$count) {
-            while (++$count < 10) {
-                echo "coucou3\n";
-                Coroutine::sleep(0.001);
-                echo "coucou4\n";
-            }
-        });
-        $result = $wait($cid);
-
-        //Coroutine::suspend($uid);
-        //Event::wait();
-        //Coroutine::resume($uid);
         $this->assertSame('value', $result);
         $this->assertLessThanOrEqual(2, $count);
     }
