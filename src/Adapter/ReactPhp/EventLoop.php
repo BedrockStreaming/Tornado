@@ -69,6 +69,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
+                    return;
                 }
                 $promise = $generator->current();
                 if (!$promise instanceof Internal\PromiseWrapper) {

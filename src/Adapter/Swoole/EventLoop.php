@@ -8,8 +8,6 @@ use M6Web\Tornado\Adapter\Swoole\Internal\SwoolePromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
-use Swoole\Coroutine\Channel;
-use Swoole\Coroutine\WaitGroup;
 use Swoole\Event;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
@@ -35,43 +33,22 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $isRejected = false;
         $promiseSettled = false;
 
-        //Coroutine::create(function() use ($promise, &$value, &$isRejected, &$promiseSettled) {
-        $ticks = 1;
-        //$wg = new WaitGroup(1);
-        //$channel = new Channel($ticks);
         Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getSwoolePromise()->then(
-            function ($result) use (/* $wg , $channel, */&$value, &$promiseSettled) {
+            function ($result) use (&$value, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
-                //$channel->push(true);
-                //$wg->done();
                 Event::exit();
             },
-            function ($result) use (/* $wg , $channel, */&$value, &$isRejected, &$promiseSettled) {
+            function ($result) use (&$value, &$isRejected, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
                 $isRejected = true;
-                //$channel->push(true);
-                //$wg->done();
                 Event::exit();
             }
         );
         if (!$promiseSettled) {
             Event::wait();
         }
-        //while ($ticks--) {
-            //$channel->pop();
-        //}
-        //$channel->close();
-        //$wg->wait();
-        //});
-        //while (!$promiseSettled) {
-            // @codeCoverageIgnoreStart
-            //usleep(SwoolePromise::PROMISE_WAIT);
-            // @codeCoverageIgnoreEnd
-        //}
-        //Event::wait();
-        //swoole_event_wait();
 
         if (!$promiseSettled) {
             throw new \Error('Impossible to resolve the promise, no more task to execute.');
@@ -96,6 +73,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
+                    return;
                 }
                 $promise = $generator->current();
                 if (!$promise instanceof Internal\PromiseWrapper) {
@@ -225,22 +203,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        /*return Internal\PromiseWrapper::createUnhandled(new SwoolePromise(function($resolve) {
+        return Internal\PromiseWrapper::createUnhandled(new SwoolePromise(function($resolve) {
             Coroutine::defer(function () use ($resolve) {
-                //Coroutine::sleep(1.0);
-                //usleep(1000000);
+                //Coroutine::sleep(0.001);
                 $resolve(null);
             });
-        }), $this->unhandledFailingPromises);*/
-        return Internal\PromiseWrapper::createUnhandled(SwoolePromise::resolve(null), $this->unhandledFailingPromises, function() {
-            return new SwoolePromise(function($resolve) {
-                Coroutine::defer(function () use ($resolve) {
-                    //Coroutine::sleep(1.0);
-                    //usleep(1);
-                    $resolve(null);
-                });
-            });
-        });
+        }), $this->unhandledFailingPromises);
     }
 
     /**
