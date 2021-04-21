@@ -2,9 +2,7 @@
 
 namespace M6Web\Tornado\Adapter\Swoole;
 
-use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
-use M6Web\Tornado\Adapter\Swoole\Internal\SwooleDeferred;
-use M6Web\Tornado\Adapter\Swoole\Internal\SwoolePromise;
+use M6Web\Tornado\Adapter\Swoole\Internal\YieldPromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
@@ -14,8 +12,6 @@ use function extension_loaded;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
-    private $cids;
-
     public function __construct()
     {
         if (!extension_loaded('swoole')) {
@@ -23,8 +19,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 'SwoolePromise MUST running only in CLI mode with swoole extension.'
             );
         }
-
-        $this->cids = [];
     }
 
     /**
@@ -32,7 +26,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function wait(Promise $promise)
     {
+        $value = null;
+        $this->async((static function() use($promise, &$value): \Generator {
+            $value = yield $promise;
+            Event::exit();
+        })());
+        Event::wait();
 
+        return $value;
     }
 
     /**
@@ -40,7 +41,18 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
+        $generatorPromise = new YieldPromise();
+        Coroutine::create(function() use($generator, $generatorPromise) {
+            while($generator->valid()) {
+                $promise = $generator->current();
+                $promise->yield();
+                $generator->send($promise->value());
+            }
 
+            $generatorPromise->resolve($generator->getReturn());
+        });
+
+        return $generatorPromise;
     }
 
     /**
@@ -86,7 +98,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
+        $promise = new YieldPromise();
+        Coroutine::create(function() use($promise) {
+            $promise->resolve(null);
+        });
 
+        return $promise;
     }
 
     /**
@@ -94,7 +111,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
+        $promise = new YieldPromise();
+        Coroutine::create(function() use($milliseconds, $promise) {
+            Coroutine::sleep($milliseconds / 1000 /* ms -> s */);
+            $promise->resolve(null);
+        });
 
+        return $promise;
     }
 
     /**
