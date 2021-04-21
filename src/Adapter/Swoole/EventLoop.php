@@ -99,8 +99,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function idle(): Promise
     {
         $promise = new YieldPromise();
-        Coroutine::create(function() use($promise) {
-            $promise->resolve(null);
+        Coroutine::create(function() use ($promise) {
+            Coroutine::defer(function () use ($promise) {
+                $promise->resolve(null);
+            });
         });
 
         return $promise;
