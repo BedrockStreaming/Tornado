@@ -2,10 +2,12 @@
 
 namespace M6Web\Tornado\Adapter\Swoole;
 
+use JetBrains\PhpStorm\Pure;
 use M6Web\Tornado\Adapter\Swoole\Internal\YieldPromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
+use Swoole\Coroutine\WaitGroup;
 use Swoole\Event;
 use RuntimeException;
 use function extension_loaded;
@@ -16,7 +18,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         if (!extension_loaded('swoole')) {
             throw new RuntimeException(
-                'SwoolePromise MUST running only in CLI mode with swoole extension.'
+                'EventLoop must running only with swoole extension.'
             );
         }
     }
@@ -60,7 +62,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
+        $promise = new YieldPromise();
 
+        foreach ($promises as $p) {
+
+        }
+
+        return $promise;
     }
 
     /**
@@ -84,6 +92,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
+        $promise = new YieldPromise();
+        $promise->resolve($value);
+
+        return $promise;
     }
 
     /**
@@ -91,6 +103,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
+        $promise = new YieldPromise();
+        $promise->reject($throwable);
+
+        return $promise;
     }
 
     /**
@@ -115,7 +131,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $promise = new YieldPromise();
         Coroutine::create(function() use($milliseconds, $promise) {
-            Coroutine::sleep($milliseconds / 1000 /* ms -> s */);
+            Coroutine::sleep($milliseconds / 1000);
             $promise->resolve(null);
         });
 
@@ -125,9 +141,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function deferred(): Deferred
+    #[Pure] public function deferred(): Deferred
     {
-
+        return new YieldPromise();
     }
 
     /**
