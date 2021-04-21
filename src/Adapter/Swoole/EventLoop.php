@@ -72,7 +72,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        new Pro
     }
 
     /**
