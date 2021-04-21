@@ -7,7 +7,6 @@ use M6Web\Tornado\Adapter\Swoole\Internal\YieldPromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
-use Swoole\Coroutine\WaitGroup;
 use Swoole\Event;
 use RuntimeException;
 use function extension_loaded;
@@ -46,7 +45,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $generatorPromise = new YieldPromise();
         Coroutine::create(function() use($generator, $generatorPromise) {
             while($generator->valid()) {
-                $promise = $generator->current();
+                $promise = YieldPromise::wrap($generator->current());
                 $promise->yield();
                 $generator->send($promise->value());
             }
@@ -62,13 +61,39 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $promise = new YieldPromise();
-
-        foreach ($promises as $p) {
-
+        $nbPromises = count($promises);
+        if ($nbPromises === 0) {
+            return $this->promiseFulfilled([]);
         }
 
-        return $promise;
+        $globalPromise = new YieldPromise();
+        $allResults = array_fill(0, $nbPromises, false);
+
+        // To ensure that the last resolved promise resolves the global promise immediately
+        $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
+            try {
+                $allResults[$index] = yield $promise;
+            } catch (\Throwable $throwable) {
+                // Prevent to reject the globalPromise twice
+                if ($nbPromises > 0) {
+                    $nbPromises = -1;
+                    $globalPromise->reject($throwable);
+
+                    return;
+                }
+            }
+
+            // Last resolved promise resolved globalPromise
+            if (--$nbPromises === 0) {
+                $globalPromise->resolve($allResults);
+            }
+        };
+
+        foreach ($promises as $index => $promise) {
+            $this->async($waitOnePromise($index, $promise));
+        }
+
+        return $globalPromise;
     }
 
     /**
