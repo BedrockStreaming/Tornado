@@ -4,12 +4,8 @@ namespace M6Web\Tornado\Adapter\Swoole\Internal;
 
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
-use Swoole\Coroutine\Channel;
 use RuntimeException;
-use function extension_loaded;
 use function count;
-use function is_callable;
-use function usleep;
 
 /**
  * @internal
@@ -30,12 +26,6 @@ final class SwoolePromise implements Promise
      */
     public function __construct(callable $executor)
     {
-        if (!extension_loaded('swoole')) {
-            throw new RuntimeException(
-                'SwoolePromise MUST running only in CLI mode with swoole extension.'
-            );
-        }
-
         $this->onResolve = function($status, $value) {
             $this->result = [$status, $value];
         };

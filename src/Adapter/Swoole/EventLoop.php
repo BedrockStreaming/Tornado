@@ -9,6 +9,8 @@ use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
 use Swoole\Event;
+use RuntimeException;
+use function extension_loaded;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
@@ -20,6 +22,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     public function __construct()
     {
+        if (!extension_loaded('swoole')) {
+            throw new RuntimeException(
+                'SwoolePromise MUST running only in CLI mode with swoole extension.'
+            );
+        }
+
         $this->streamLoop = new Internal\StreamEventLoop();
         $this->unhandledFailingPromises = new FailingPromiseCollection();
     }
