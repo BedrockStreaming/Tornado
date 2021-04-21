@@ -26,7 +26,7 @@ function monitorRequest(EventLoop $eventLoop, HttpClient $httpClient, string $ur
 $eventLoop = new Adapter\Tornado\EventLoop();
 //$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
 //$eventLoop = new Adapter\Amp\EventLoop();
-//$eventLoop = new Adapter\ReactPhp\EventLoop(new React\EventLoop\StreamSelectLoop());
+//$eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 // Choose your adapter
 $httpClient = new Adapter\Symfony\HttpClient(new \Symfony\Component\HttpClient\CurlHttpClient(), $eventLoop, new \Http\Factory\Guzzle\ResponseFactory(), new \Http\Factory\Guzzle\StreamFactory());

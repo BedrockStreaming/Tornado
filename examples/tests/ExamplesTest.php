@@ -1,6 +1,6 @@
 <?php
 
-namespace M6WebExamples\Tornado\Tests;
+namespace M6WebExamplesTests\Tornado;
 
 use PHPUnit\Framework\TestCase;
 
