@@ -8,6 +8,8 @@ use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
 use RuntimeException;
+use Swoole\IDEHelper\StubGenerators\Swoole;
+use Swoole\Runtime;
 use Throwable;
 use function extension_loaded;
 
@@ -283,7 +285,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function readable($stream): Promise
     {
-
+        return $this->promiseFulfilled($stream);
     }
 
     /**
@@ -291,6 +293,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function writable($stream): Promise
     {
-
+        return $this->promiseFulfilled($stream);
     }
 }
