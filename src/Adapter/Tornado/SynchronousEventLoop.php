@@ -13,7 +13,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function wait(Promise $promise)
+    public function wait(Promise $promise): mixed
     {
         // If there are some uncaught exceptions, throw the first one.
         if ($throwable = reset($this->asyncThrowables)) {

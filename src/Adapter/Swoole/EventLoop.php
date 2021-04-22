@@ -2,17 +2,19 @@
 
 namespace M6Web\Tornado\Adapter\Swoole;
 
-use JetBrains\PhpStorm\Pure;
-use M6Web\Tornado\Adapter\Swoole\Internal\YieldPromise;
+use Generator;
+use M6Web\Tornado\Adapter\Swoole\Internal\DummyPromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
-use Swoole\Event;
 use RuntimeException;
+use Throwable;
 use function extension_loaded;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
+    private $cids;
+
     public function __construct()
     {
         if (!extension_loaded('swoole')) {
@@ -20,19 +22,56 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 'EventLoop must running only with swoole extension.'
             );
         }
+
+        $this->cids = [];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function wait(Promise $promise)
+    private function shiftCoroutine(): mixed
     {
-        $value = null;
-        $this->async((static function() use($promise, &$value): \Generator {
-            $value = yield $promise;
-            Event::exit();
-        })());
-        Event::wait();
+        if(count($this->cids) === 0) {
+            return null;
+        }
+
+        $cid = array_shift($this->cids);
+        if(Coroutine::exists($cid)) {
+            Coroutine::resume($cid);
+        } else {
+            $this->shiftCoroutine();
+        }
+
+        return $cid;
+    }
+
+    private function pushCoroutine(): mixed
+    {
+        $cid = Coroutine::getCid();
+        $this->cids[] = $cid;
+        Coroutine::yield();
+        return $cid;
+    }
+
+    private function createPromise(): DummyPromise
+    {
+        return new DummyPromise(function () {
+            $this->shiftCoroutine();
+        });
+    }
+
+    private function resolve($value)
+    {
+        if($value instanceof DummyPromise && !$value->isPending()) {
+            if($value->getException() !== null) {
+                throw $value->getException();
+            }
+
+            $value = $this->resolve($value->getValue());
+        }
+
+        if(is_array($value)) {
+            foreach ($value as $k => $v) {
+                $value[$k] = $this->resolve($v);
+            }
+        }
 
         return $value;
     }
@@ -40,20 +79,54 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function async(\Generator $generator): Promise
+    public function wait(Promise $promise): mixed
     {
-        $generatorPromise = new YieldPromise();
-        Coroutine::create(function() use($generator, $generatorPromise) {
-            while($generator->valid()) {
-                $promise = YieldPromise::wrap($generator->current());
-                $promise->yield();
-                $generator->send($promise->value());
-            }
+        $promise = DummyPromise::wrap($promise);
 
-            $generatorPromise->resolve($generator->getReturn());
-        });
+        if(count($this->cids) === 0 && $promise->isPending()) {
+            throw new \Error('Impossible to resolve the promise, no more task to execute..');
+        }
 
-        return $generatorPromise;
+        while ($promise->isPending()) {
+            $this->shiftCoroutine();
+        }
+
+        return $this->resolve($promise);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function async(Generator $generator): Promise
+    {
+        $fnWrapGenerator = function (Generator $generator, $deferred) use (&$fnWrapGenerator) {
+            Coroutine::create(function () use ($generator, $deferred, $fnWrapGenerator) {
+                try {
+                    while ($generator->valid()) {
+                        $promise = $generator->current();
+                        if(!$promise instanceof DummyPromise) {
+                            throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
+                        }
+                        $this->pushCoroutine();
+                        $generator->send($this->resolve($promise));
+                    }
+
+                    $deferred->resolve($generator->getReturn());
+                } catch (Throwable $exception) {
+                    try {
+                        $generator->throw($exception);
+                        $fnWrapGenerator($generator, $deferred);
+                    } catch (\Throwable $throwable) {
+                        $deferred->reject($throwable);
+                    }
+                }
+            });
+        };
+
+        $deferred = $this->createPromise();
+        $fnWrapGenerator($generator, $deferred);
+
+        return $deferred;
     }
 
     /**
@@ -66,14 +139,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled([]);
         }
 
-        $globalPromise = new YieldPromise();
+        $globalPromise = $this->createPromise();
         $allResults = array_fill(0, $nbPromises, false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
-        $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
+        $waitOnePromise = static function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): Generator {
             try {
                 $allResults[$index] = yield $promise;
-            } catch (\Throwable $throwable) {
+            } catch (Throwable $throwable) {
                 // Prevent to reject the globalPromise twice
                 if ($nbPromises > 0) {
                     $nbPromises = -1;
@@ -101,7 +174,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseForeach($traversable, callable $function): Promise
     {
+        $promises = [];
+        foreach ($traversable as $key => $value) {
+            $promises[] = $this->async($function($value, $key));
+        }
 
+        return $this->promiseAll(...$promises);
     }
 
     /**
@@ -109,7 +187,33 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
+        if (empty($promises)) {
+            return $this->promiseFulfilled(null);
+        }
 
+        $globalPromise = $this->createPromise();
+        $isFirstPromise = true;
+
+        $wrapPromise = function (Promise $promise) use ($globalPromise, &$isFirstPromise): \Generator {
+            try {
+                $result = yield $promise;
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $globalPromise->resolve($result);
+                }
+            } catch (\Throwable $throwable) {
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $globalPromise->reject($throwable);
+                }
+            }
+        };
+
+        foreach ($promises as $promise) {
+            $this->async($wrapPromise($promise));
+        }
+
+        return $globalPromise;
     }
 
     /**
@@ -117,7 +221,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        $promise = new YieldPromise();
+        $promise = $this->createPromise();
         $promise->resolve($value);
 
         return $promise;
@@ -126,9 +230,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function promiseRejected(\Throwable $throwable): Promise
+    public function promiseRejected(Throwable $throwable): Promise
     {
-        $promise = new YieldPromise();
+        $promise = $this->createPromise();
         $promise->reject($throwable);
 
         return $promise;
@@ -139,11 +243,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        $promise = new YieldPromise();
+        $promise = new DummyPromise();
         Coroutine::create(function() use ($promise) {
-            Coroutine::defer(function () use ($promise) {
-                $promise->resolve(null);
-            });
+            $this->pushCoroutine();
+            $promise->resolve(null);
+            //Coroutine::defer(function () use ($promise) {
+            //});
         });
 
         return $promise;
@@ -154,9 +259,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        $promise = new YieldPromise();
+        $promise = new DummyPromise();
         Coroutine::create(function() use($milliseconds, $promise) {
-            Coroutine::sleep($milliseconds / 1000);
+            $this->pushCoroutine();
+            //Coroutine::sleep($milliseconds / 1000);
+            usleep($milliseconds * 1000);
             $promise->resolve(null);
         });
 
@@ -166,9 +273,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    #[Pure] public function deferred(): Deferred
+    public function deferred(): Deferred
     {
-        return new YieldPromise();
+        return $this->createPromise();
     }
 
     /**

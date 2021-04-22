@@ -35,7 +35,7 @@ class PromiseEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function wait(Promise $promise)
+    public function wait(Promise $promise): mixed
     {
         $value = null;
         $isRejected = false;
