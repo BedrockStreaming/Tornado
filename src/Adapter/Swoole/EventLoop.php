@@ -61,7 +61,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function resolve($value)
     {
-        if($value instanceof DummyPromise && !$value->isPending()) {
+        if($value instanceof DummyPromise && !$this->isPending($value)) {
             if($value->getException() !== null) {
                 throw $value->getException();
             }
@@ -78,6 +78,29 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return $value;
     }
 
+    private function isPending(DummyPromise $promise): bool
+    {
+        if($promise->isPending()) {
+            return $promise->isPending();
+        }
+
+        if($promise->getException() === null) {
+            if ($promise->getValue() instanceof DummyPromise) {
+                return $promise->getValue()->isPending();
+            }
+
+            if(is_array($promise->getValue())) {
+                foreach ($promise->getValue() as $value) {
+                    if($value instanceof DummyPromise && $value->isPending()) {
+                        return $value->isPending();
+                    }
+                }
+            }
+        }
+
+        return $promise->isPending();
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -85,11 +108,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $promise = DummyPromise::wrap($promise);
 
-        if(count($this->cids) === 0 && $promise->isPending()) {
+        if(count($this->cids) === 0 && $this->isPending($promise)) {
             throw new \Error('Impossible to resolve the promise, no more task to execute..');
         }
 
-        while ($promise->isPending()) {
+        while ($this->isPending($promise)) {
             $this->shiftCoroutine();
         }
 

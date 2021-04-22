@@ -52,24 +52,6 @@ final class DummyPromise implements Promise, Deferred
 
     public function isPending(): bool
     {
-        if($this->isPending) {
-            return $this->isPending;
-        }
-
-        if($this->exception === null) {
-            if ($this->value instanceof self) {
-                return $this->value->isPending();
-            }
-
-            if(is_array($this->value)) {
-                foreach ($this->value as $value) {
-                    if($value instanceof self && $value->isPending()) {
-                        return $value->isPending();
-                    }
-                }
-            }
-        }
-
         return $this->isPending;
     }
 
