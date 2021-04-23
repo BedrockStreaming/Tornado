@@ -11,15 +11,15 @@ final class DummyPromise implements Promise, Deferred
     private bool $isPending;
     private mixed $value;
     private ?Throwable $exception;
-    private $callback;
+    private $callbacks;
 
     public function __construct(?callable $callback = null)
     {
         $this->isPending = true;
         $this->exception = null;
-        $this->callback = $callback ?? static function() {};
+        $this->callbacks = $callback ? [$callback] : [];
     }
-    
+
     public static function wrap(Promise $promise): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
@@ -32,13 +32,19 @@ final class DummyPromise implements Promise, Deferred
         return $this;
     }
 
+    public function addCallback(callable $callback) {
+        $this->callbacks[] = $callback;
+    }
+
     public function resolve($value): void
     {
         assert(true === $this->isPending, new \Error('Promise is already resolved.'));
 
         $this->isPending = false;
         $this->value = $value;
-        ($this->callback)();
+        foreach ($this->callbacks as $callback) {
+            ($callback)($this);
+        }
     }
 
     public function reject(Throwable $throwable): void
@@ -47,7 +53,10 @@ final class DummyPromise implements Promise, Deferred
 
         $this->isPending = false;
         $this->exception = $throwable;
-        ($this->callback)();
+
+        foreach ($this->callbacks as $callback) {
+            ($callback)($this);
+        }
     }
 
     public function isPending(): bool
