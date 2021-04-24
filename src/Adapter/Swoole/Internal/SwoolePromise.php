@@ -2,10 +2,10 @@
 
 namespace M6Web\Tornado\Adapter\Swoole\Internal;
 
-use M6Web\Tornado\Promise;
-use Swoole\Coroutine;
-use RuntimeException;
 use function count;
+use M6Web\Tornado\Promise;
+use RuntimeException;
+use Swoole\Coroutine;
 
 /**
  * @internal
@@ -21,12 +21,10 @@ final class SwoolePromise implements Promise
 
     /**
      * Promise constructor.
-     *
-     * @param callable $executor
      */
     public function __construct(callable $executor)
     {
-        $this->onResolve = function($status, $value) {
+        $this->onResolve = function ($status, $value) {
             $this->result = [$status, $value];
         };
 
@@ -47,9 +45,6 @@ final class SwoolePromise implements Promise
 
     /**
      * {@inheritDoc}
-     *
-     * @param callable $promise
-     * @return SwoolePromise
      */
     final public static function create(callable $promise): SwoolePromise
     {
@@ -60,7 +55,6 @@ final class SwoolePromise implements Promise
      * {@inheritDoc}
      *
      * @param mixed $value
-     * @return SwoolePromise
      */
     final public static function resolve($value): SwoolePromise
     {
@@ -73,7 +67,6 @@ final class SwoolePromise implements Promise
      * {@inheritDoc}
      *
      * @param mixed $value
-     * @return SwoolePromise
      */
     final public static function reject($value): SwoolePromise
     {
@@ -84,9 +77,6 @@ final class SwoolePromise implements Promise
 
     /**
      * {@inheritDoc}
-     *
-     * @param callable $onRejected
-     * @return SwoolePromise
      */
     final public function catch(callable $onRejected): SwoolePromise
     {
@@ -95,23 +85,19 @@ final class SwoolePromise implements Promise
 
     /**
      * {@inheritDoc}
-     *
-     * @param callable|null $onFulfilled
-     * @param callable|null $onRejected
-     * @return SwoolePromise
      */
     public function then(?callable $onFulfilled = null, ?callable $onRejected = null): SwoolePromise
     {
-        if($this->result === null) {
+        if ($this->result === null) {
             return self::create(function (callable $resolve, callable $reject) use ($onFulfilled, $onRejected) {
-                $this->onResolve = function($status, $value) use ($resolve, $reject, $onFulfilled, $onRejected) {
-                    if($status === self::STATUS_RESOLVE) {
-                        if($onFulfilled !== null) {
+                $this->onResolve = function ($status, $value) use ($resolve, $reject, $onFulfilled, $onRejected) {
+                    if ($status === self::STATUS_RESOLVE) {
+                        if ($onFulfilled !== null) {
                             $onFulfilled($value);
                         }
                         $resolve($value);
-                    } else if($status === self::STATUS_ERROR) {
-                        if($onRejected !== null) {
+                    } elseif ($status === self::STATUS_ERROR) {
+                        if ($onRejected !== null) {
                             $onRejected($value);
                         }
                         $reject($value);
@@ -121,15 +107,15 @@ final class SwoolePromise implements Promise
         }
 
         return self::create(function (callable $resolve, callable $reject) use ($onFulfilled, $onRejected) {
-            if($this->result[0] === self::STATUS_RESOLVE) {
+            if ($this->result[0] === self::STATUS_RESOLVE) {
                 $value = $this->result[1];
-                if($onFulfilled !== null) {
+                if ($onFulfilled !== null) {
                     $onFulfilled($value);
                 }
                 $resolve($value);
-            } else if($this->result[0] === self::STATUS_ERROR) {
+            } elseif ($this->result[0] === self::STATUS_ERROR) {
                 $error = $this->result[1];
-                if($onRejected !== null) {
+                if ($onRejected !== null) {
                     $onRejected($error);
                 }
                 $reject($error);
@@ -141,7 +127,6 @@ final class SwoolePromise implements Promise
      * {@inheritDoc}
      *
      * @param iterable|SwoolePromise[] $promises
-     * @return SwoolePromise
      */
     public static function all(iterable $promises): SwoolePromise
     {
@@ -149,21 +134,20 @@ final class SwoolePromise implements Promise
             $ticks = count($promises);
 
             $firstError = null;
-            $result     = [];
-            $key        = 0;
+            $result = [];
+            $key = 0;
             foreach ($promises as $promise) {
                 if (!$promise instanceof SwoolePromise) {
-                    throw new RuntimeException(
-                        'Supported only SwoolePromise instance'
-                    );
+                    throw new RuntimeException('Supported only SwoolePromise instance');
                 }
                 $promise->then(function ($value) use ($key, &$result, &$ticks, $resolve) {
                     $result[$key] = $value;
                     $ticks--;
-                    if($ticks === 0) {
+                    if ($ticks === 0) {
                         ksort($result);
                         $resolve($result);
                     }
+
                     return $value;
                 }, function ($error) use (&$firstError, &$ticks, $reject) {
                     $ticks--;

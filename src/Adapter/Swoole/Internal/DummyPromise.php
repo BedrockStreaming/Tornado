@@ -2,8 +2,8 @@
 
 namespace M6Web\Tornado\Adapter\Swoole\Internal;
 
-use M6Web\Tornado\Promise;
 use M6Web\Tornado\Deferred;
+use M6Web\Tornado\Promise;
 use Throwable;
 
 final class DummyPromise implements Promise, Deferred
@@ -26,13 +26,14 @@ final class DummyPromise implements Promise, Deferred
 
         return $promise;
     }
-    
+
     public function getPromise(): Promise
     {
         return $this;
     }
 
-    public function addCallback(callable $callback) {
+    public function addCallback(callable $callback)
+    {
         $this->callbacks[] = $callback;
     }
 

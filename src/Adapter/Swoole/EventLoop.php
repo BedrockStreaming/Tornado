@@ -2,17 +2,17 @@
 
 namespace M6Web\Tornado\Adapter\Swoole;
 
+use function extension_loaded;
 use Generator;
 use M6Web\Tornado\Adapter\Swoole\Internal\DummyPromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
-use Swoole\Coroutine;
 use RuntimeException;
+use Swoole\Coroutine;
 use Swoole\Event;
 use Swoole\IDEHelper\StubGenerators\Swoole;
 use Swoole\Process;
 use Throwable;
-use function extension_loaded;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
@@ -23,9 +23,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function __construct()
     {
         if (!extension_loaded('swoole')) {
-            throw new RuntimeException(
-                'EventLoop must running only with swoole extension.'
-            );
+            throw new RuntimeException('EventLoop must running only with swoole extension.');
         }
 
         $this->cids = [];
@@ -61,12 +59,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function shiftCoroutine(): mixed
     {
-        if(count($this->cids) === 0) {
+        if (count($this->cids) === 0) {
             return null;
         }
 
         $cid = array_shift($this->cids);
-        if(Coroutine::exists($cid)) {
+        if (Coroutine::exists($cid)) {
             $this->oldCids[] = $cid;
             Coroutine::resume($cid);
         } else {
@@ -81,6 +79,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $cid = Coroutine::getCid();
         $this->cids[] = $cid;
         Coroutine::yield();
+
         return $cid;
     }
 
@@ -93,10 +92,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function getValue($value)
     {
-        if($value instanceof DummyPromise && !$this->isPending($value)) {
-            if($value->getException() !== null) {
+        if ($value instanceof DummyPromise && !$this->isPending($value)) {
+            if ($value->getException() !== null) {
                 foreach ($this->pendingThrowPromises as $index => $promise) {
-                    if($promise === $value) {
+                    if ($promise === $value) {
                         unset($this->pendingThrowPromises[$index]);
                     }
                 }
@@ -106,7 +105,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $value = $this->getValue($value->getValue());
         }
 
-        if(is_array($value)) {
+        if (is_array($value)) {
             foreach ($value as $k => $v) {
                 $value[$k] = $this->getValue($v);
             }
@@ -121,18 +120,18 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function isPending(DummyPromise $promise): bool
     {
-        if($promise->isPending()) {
+        if ($promise->isPending()) {
             return $promise->isPending();
         }
 
-        if($promise->getException() === null) {
+        if ($promise->getException() === null) {
             if ($promise->getValue() instanceof DummyPromise) {
                 return $promise->getValue()->isPending();
             }
 
-            if(is_array($promise->getValue())) {
+            if (is_array($promise->getValue())) {
                 foreach ($promise->getValue() as $value) {
-                    if($value instanceof DummyPromise && $value->isPending()) {
+                    if ($value instanceof DummyPromise && $value->isPending()) {
                         return $value->isPending();
                     }
                 }
@@ -149,7 +148,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $promise = DummyPromise::wrap($promise);
 
-        if(count($this->cids) === 0 && $this->isPending($promise)) {
+        if (count($this->cids) === 0 && $this->isPending($promise)) {
             throw new \Error('Impossible to resolve the promise, no more task to execute..');
         }
 
@@ -170,7 +169,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 try {
                     while ($generator->valid()) {
                         $promise = $generator->current();
-                        if(!$promise instanceof DummyPromise) {
+                        if (!$promise instanceof DummyPromise) {
                             throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
                         }
                         $this->pushCoroutine();
@@ -261,9 +260,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $deferred = $this->createPromise();
 
         foreach ($promises as $promise) {
-            DummyPromise::wrap($promise)->addCallback(function(DummyPromise $promise) use ($deferred) {
+            DummyPromise::wrap($promise)->addCallback(function (DummyPromise $promise) use ($deferred) {
                 if ($deferred->isPending()) {
-                    if($promise->getException() !== null) {
+                    if ($promise->getException() !== null) {
                         $deferred->reject($promise->getException());
                     } else {
                         $deferred->resolve($promise->getValue());
@@ -303,7 +302,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function idle(): Promise
     {
         $promise = $this->createPromise();
-        Coroutine::create(function() use ($promise) {
+        Coroutine::create(function () use ($promise) {
             $this->pushCoroutine();
             // Coroutine::defer(function () use ($promise) {
             $promise->resolve(null);
@@ -319,7 +318,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function delay(int $milliseconds): Promise
     {
         $promise = $this->createPromise();
-        Coroutine::create(function() use($milliseconds, $promise) {
+        Coroutine::create(function () use ($milliseconds, $promise) {
             $this->pushCoroutine();
             // Coroutine::sleep($milliseconds / 1000);
             usleep($milliseconds * 1000);

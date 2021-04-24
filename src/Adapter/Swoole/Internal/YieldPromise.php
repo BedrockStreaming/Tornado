@@ -2,8 +2,8 @@
 
 namespace M6Web\Tornado\Adapter\Swoole\Internal;
 
-use M6Web\Tornado\Promise;
 use M6Web\Tornado\Deferred;
+use M6Web\Tornado\Promise;
 use Swoole\Coroutine;
 
 final class YieldPromise implements Promise, Deferred
@@ -21,7 +21,7 @@ final class YieldPromise implements Promise, Deferred
 
     public function yield(): void
     {
-        if($this->isSettled) {
+        if ($this->isSettled) {
             return;
         }
 
@@ -33,7 +33,7 @@ final class YieldPromise implements Promise, Deferred
     {
         assert($this->isSettled, new \Error('Promise is not resolved.'));
 
-        if($this->exception) {
+        if ($this->exception) {
             return $this->exception;
         }
 
@@ -67,7 +67,7 @@ final class YieldPromise implements Promise, Deferred
     public function reject(\Throwable $throwable): void
     {
         assert(false === $this->isSettled, new \Error('Promise is already resolved.'));
-        
+
         $this->isSettled = true;
         $this->exception = $throwable;
         foreach ($this->cids as $cid => $dummy) {

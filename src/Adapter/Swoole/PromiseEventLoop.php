@@ -2,15 +2,15 @@
 
 namespace M6Web\Tornado\Adapter\Swoole;
 
+use function extension_loaded;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Adapter\Swoole\Internal\SwooleDeferred;
 use M6Web\Tornado\Adapter\Swoole\Internal\SwoolePromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
+use RuntimeException;
 use Swoole\Coroutine;
 use Swoole\Event;
-use RuntimeException;
-use function extension_loaded;
 
 class PromiseEventLoop implements \M6Web\Tornado\EventLoop
 {
@@ -23,9 +23,7 @@ class PromiseEventLoop implements \M6Web\Tornado\EventLoop
     public function __construct()
     {
         if (!extension_loaded('swoole')) {
-            throw new RuntimeException(
-                'SwoolePromise MUST running only in CLI mode with swoole extension.'
-            );
+            throw new RuntimeException('SwoolePromise MUST running only in CLI mode with swoole extension.');
         }
 
         $this->streamLoop = new Internal\StreamEventLoop();
@@ -81,6 +79,7 @@ class PromiseEventLoop implements \M6Web\Tornado\EventLoop
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
+
                     return;
                 }
                 $promise = $generator->current();
@@ -122,8 +121,8 @@ class PromiseEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $promises = array_map(function($promise) {
-            if($promise instanceof Internal\PromiseWrapper) {
+        $promises = array_map(function ($promise) {
+            if ($promise instanceof Internal\PromiseWrapper) {
                 return $promise->getSwoolePromise();
             }
 
@@ -211,7 +210,7 @@ class PromiseEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        return Internal\PromiseWrapper::createUnhandled(new SwoolePromise(function($resolve) {
+        return Internal\PromiseWrapper::createUnhandled(new SwoolePromise(function ($resolve) {
             Coroutine::defer(function () use ($resolve) {
                 //Coroutine::sleep(0.001);
                 $resolve(null);
@@ -224,8 +223,8 @@ class PromiseEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        return Internal\PromiseWrapper::createUnhandled(SwoolePromise::resolve(null), $this->unhandledFailingPromises, function() use ($milliseconds) {
-            return new SwoolePromise(function($resolve) use ($milliseconds) {
+        return Internal\PromiseWrapper::createUnhandled(SwoolePromise::resolve(null), $this->unhandledFailingPromises, function () use ($milliseconds) {
+            return new SwoolePromise(function ($resolve) use ($milliseconds) {
                 //Coroutine::sleep($milliseconds / 1000000);
                 usleep($milliseconds * 1000);
                 $resolve(null);

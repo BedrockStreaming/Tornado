@@ -2,8 +2,8 @@
 
 namespace M6Web\Tornado\Adapter\Swoole\Internal;
 
-use M6Web\Tornado\Promise;
 use M6Web\Tornado\Deferred;
+use M6Web\Tornado\Promise;
 
 /**
  * @internal
@@ -19,7 +19,6 @@ final class SwooleDeferred implements Deferred
     {
     }
 
-
     public function getPromise(): Promise
     {
         return $this->getSwoolePromise();
@@ -30,7 +29,7 @@ final class SwooleDeferred implements Deferred
         if (null === $this->promise) {
             $this->promise = new SwoolePromise(function ($resolve, $reject) {
                 $this->resolveCallback = $resolve;
-                $this->rejectCallback  = $reject;
+                $this->rejectCallback = $reject;
             });
         }
 

@@ -2,23 +2,21 @@
 
 namespace M6Web\Tornado\Adapter\Swoole;
 
+use function extension_loaded;
 use JetBrains\PhpStorm\Pure;
 use M6Web\Tornado\Adapter\Swoole\Internal\YieldPromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
+use RuntimeException;
 use Swoole\Coroutine;
 use Swoole\Event;
-use RuntimeException;
-use function extension_loaded;
 
 class YieldEventLoop implements \M6Web\Tornado\EventLoop
 {
     public function __construct()
     {
         if (!extension_loaded('swoole')) {
-            throw new RuntimeException(
-                'EventLoop must running only with swoole extension.'
-            );
+            throw new RuntimeException('EventLoop must running only with swoole extension.');
         }
     }
 
@@ -28,7 +26,7 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise): mixed
     {
         $value = null;
-        $this->async((static function() use($promise, &$value): \Generator {
+        $this->async((static function () use ($promise, &$value): \Generator {
             $value = yield $promise;
             Event::exit();
         })());
@@ -43,8 +41,8 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
     public function async(\Generator $generator): Promise
     {
         $generatorPromise = new YieldPromise();
-        Coroutine::create(function() use($generator, $generatorPromise) {
-            while($generator->valid()) {
+        Coroutine::create(function () use ($generator, $generatorPromise) {
+            while ($generator->valid()) {
                 $promise = YieldPromise::wrap($generator->current());
                 $promise->yield();
                 $generator->send($promise->value());
@@ -101,7 +99,6 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseForeach($traversable, callable $function): Promise
     {
-
     }
 
     /**
@@ -109,7 +106,6 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
-
     }
 
     /**
@@ -140,7 +136,7 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
     public function idle(): Promise
     {
         $promise = new YieldPromise();
-        Coroutine::create(function() use ($promise) {
+        Coroutine::create(function () use ($promise) {
             Coroutine::defer(function () use ($promise) {
                 $promise->resolve(null);
             });
@@ -155,7 +151,7 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
     public function delay(int $milliseconds): Promise
     {
         $promise = new YieldPromise();
-        Coroutine::create(function() use($milliseconds, $promise) {
+        Coroutine::create(function () use ($milliseconds, $promise) {
             Coroutine::sleep($milliseconds / 1000);
             $promise->resolve(null);
         });
@@ -166,17 +162,17 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    #[Pure] public function deferred(): Deferred
-    {
-        return new YieldPromise();
-    }
+    #[Pure]
+ public function deferred(): Deferred
+ {
+     return new YieldPromise();
+ }
 
     /**
      * {@inheritdoc}
      */
     public function readable($stream): Promise
     {
-
     }
 
     /**
@@ -184,6 +180,5 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function writable($stream): Promise
     {
-
     }
 }

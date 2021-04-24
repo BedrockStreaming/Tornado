@@ -55,7 +55,7 @@ class PromiseWrapper implements Promise
 
     public function getSwoolePromise(): SwoolePromise
     {
-        if($this->deferredExecutor) {
+        if ($this->deferredExecutor) {
             return $this->swoolePromise->then($this->deferredExecutor);
         }
 
