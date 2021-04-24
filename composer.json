@@ -33,11 +33,13 @@
         "react/promise": "^2.7",
         "phpstan/phpstan": "^0.10.5",
         "symfony/http-client": "^4.3",
+        "swoole/ide-helper": "^4.6.5",
         "psr/http-factory": "^1.0",
         "http-interop/http-factory-guzzle": "^1.0"
     },
     "suggest": {
         "ext-curl": "Required to use Curl and HTTP2 features",
+        "ext-swoole": "Required to use Tornado\\Adapter\\Swoole\\EventLoop",
         "amphp/amp": "Required to use Tornado\\Adapter\\Amp\\EventLoop",
         "react/event-loop": "Required to use Tornado\\Adapter\\ReactPhp\\EventLoop",
         "react/promise": "Required to use Tornado\\Adapter\\ReactPhp\\EventLoop",

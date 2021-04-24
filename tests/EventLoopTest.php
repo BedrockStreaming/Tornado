@@ -65,7 +65,7 @@ abstract class EventLoopTest extends TestCase
 
     public function testDelay()
     {
-        $expectedDelay = 42; /*ms*/
+        $expectedDelay = 42; // ms
         $eventLoop = $this->createEventLoop();
 
         $promise = $eventLoop->delay($expectedDelay);

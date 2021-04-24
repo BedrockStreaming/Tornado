@@ -1,22 +1,32 @@
 <?php
 
-namespace M6Web\Tornado\Adapter\ReactPhp;
+namespace M6Web\Tornado\Adapter\Swoole;
 
+use function extension_loaded;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
+use M6Web\Tornado\Adapter\Swoole\Internal\SwooleDeferred;
+use M6Web\Tornado\Adapter\Swoole\Internal\SwoolePromise;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
+use RuntimeException;
+use Swoole\Coroutine;
+use Swoole\Event;
 
-class EventLoop implements \M6Web\Tornado\EventLoop
+class PromiseEventLoop implements \M6Web\Tornado\EventLoop
 {
-    /** @var \React\EventLoop\LoopInterface */
-    private $reactEventLoop;
+    /** @var Internal\StreamEventLoop */
+    private $streamLoop;
 
     /** @var FailingPromiseCollection */
     private $unhandledFailingPromises;
 
-    public function __construct(\React\EventLoop\LoopInterface $reactEventLoop)
+    public function __construct()
     {
-        $this->reactEventLoop = $reactEventLoop;
+        if (!extension_loaded('swoole')) {
+            throw new RuntimeException('SwoolePromise MUST running only in CLI mode with swoole extension.');
+        }
+
+        $this->streamLoop = new Internal\StreamEventLoop();
         $this->unhandledFailingPromises = new FailingPromiseCollection();
     }
 
@@ -28,22 +38,22 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $value = null;
         $isRejected = false;
         $promiseSettled = false;
-        Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getReactPromise()->then(
+
+        Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getSwoolePromise()->then(
             function ($result) use (&$value, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
-                $this->reactEventLoop->stop();
+                Event::exit();
             },
             function ($result) use (&$value, &$isRejected, &$promiseSettled) {
                 $promiseSettled = true;
                 $value = $result;
                 $isRejected = true;
-                $this->reactEventLoop->stop();
+                Event::exit();
             }
         );
-
         if (!$promiseSettled) {
-            $this->reactEventLoop->run();
+            Event::wait();
         }
 
         if (!$promiseSettled) {
@@ -65,7 +75,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator) {
+        $fnWrapGenerator = function (\Generator $generator, SwooleDeferred $deferred) use (&$fnWrapGenerator) {
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
@@ -77,7 +87,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
                 }
                 Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)
-                    ->getReactPromise()->then(
+                    ->getSwoolePromise()->then(
                         function ($result) use ($generator, $deferred, $fnWrapGenerator) {
                             try {
                                 $generator->send($result);
@@ -100,10 +110,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         };
 
-        $deferred = new \React\Promise\Deferred();
+        $deferred = new SwooleDeferred();
         $fnWrapGenerator($generator, $deferred);
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        return Internal\PromiseWrapper::createUnhandled($deferred->getSwoolePromise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -111,20 +121,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        return Internal\PromiseWrapper::createUnhandled(
-            \React\Promise\all(
-                array_map(
-                    function (Promise $promise) {
-                        return Internal\PromiseWrapper::toHandledPromise(
-                            $promise,
-                            $this->unhandledFailingPromises
-                        )->getReactPromise();
-                    },
-                    $promises
-                )
-            ),
-            $this->unhandledFailingPromises
-        );
+        $promises = array_map(function ($promise) {
+            if ($promise instanceof Internal\PromiseWrapper) {
+                return $promise->getSwoolePromise();
+            }
+
+            return SwoolePromise::resolve($promise);
+        }, $promises);
+
+        return Internal\PromiseWrapper::createHandled(SwoolePromise::all($promises));
     }
 
     /**
@@ -145,20 +150,43 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRace(Promise ...$promises): Promise
     {
-        return Internal\PromiseWrapper::createUnhandled(
-            \React\Promise\race(
-                array_map(
-                    function (Promise $promise) {
-                        return Internal\PromiseWrapper::toHandledPromise(
-                            $promise,
-                            $this->unhandledFailingPromises
-                        )->getReactPromise();
-                    },
-                    $promises
-                )
-            ),
-            $this->unhandledFailingPromises
+        if (empty($promises)) {
+            return $this->promiseFulfilled(null);
+        }
+
+        $deferred = new SwooleDeferred();
+        $isFirstPromise = true;
+
+        $wrapPromise = function (SwoolePromise $promise) use ($deferred, &$isFirstPromise): \Generator {
+            try {
+                $result = yield $promise;
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $deferred->resolve($result);
+                }
+            } catch (\Throwable $throwable) {
+                if ($isFirstPromise) {
+                    $isFirstPromise = false;
+                    $deferred->reject($throwable);
+                }
+            }
+        };
+
+        $promises = array_map(
+            function (Promise $promise) {
+                return Internal\PromiseWrapper::toHandledPromise(
+                    $promise,
+                    $this->unhandledFailingPromises
+                )->getSwoolePromise();
+            },
+            $promises
         );
+
+        foreach ($promises as $promise) {
+            SwoolePromise::resolve($wrapPromise($promise));
+        }
+
+        return Internal\PromiseWrapper::createUnhandled($deferred->getSwoolePromise(), $this->unhandledFailingPromises);
     }
 
     /**
@@ -166,7 +194,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseFulfilled($value): Promise
     {
-        return Internal\PromiseWrapper::createHandled(new \React\Promise\FulfilledPromise($value));
+        return Internal\PromiseWrapper::createHandled(SwoolePromise::resolve($value));
     }
 
     /**
@@ -174,8 +202,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        // Manually created promises are considered as handled.
-        return Internal\PromiseWrapper::createHandled(new \React\Promise\RejectedPromise($throwable));
+        return Internal\PromiseWrapper::createHandled(SwoolePromise::reject($throwable));
     }
 
     /**
@@ -183,12 +210,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        $deferred = $this->deferred();
-        $this->reactEventLoop->futureTick(function () use ($deferred) {
-            $deferred->resolve(null);
-        });
-
-        return $deferred->getPromise();
+        return Internal\PromiseWrapper::createUnhandled(new SwoolePromise(function ($resolve) {
+            Coroutine::defer(function () use ($resolve) {
+                //Coroutine::sleep(0.001);
+                $resolve(null);
+            });
+        }), $this->unhandledFailingPromises);
     }
 
     /**
@@ -196,15 +223,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        $deferred = $this->deferred();
-        $this->reactEventLoop->addTimer(
-            $milliseconds / 1000 /* milliseconds per second */ ,
-            function () use ($deferred) {
-                $deferred->resolve(null);
-            }
-        );
-
-        return $deferred->getPromise();
+        return Internal\PromiseWrapper::createUnhandled(SwoolePromise::resolve(null), $this->unhandledFailingPromises, function () use ($milliseconds) {
+            return new SwoolePromise(function ($resolve) use ($milliseconds) {
+                //Coroutine::sleep($milliseconds / 1000000);
+                usleep($milliseconds * 1000);
+                $resolve(null);
+            });
+        });
     }
 
     /**
@@ -213,9 +238,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function deferred(): Deferred
     {
         return new Internal\Deferred(
-            $deferred = new \React\Promise\Deferred(),
+            $deferred = new SwooleDeferred(),
             // Manually created promises are considered as handled.
-            Internal\PromiseWrapper::createHandled($deferred->promise())
+            Internal\PromiseWrapper::createHandled($deferred->getSwoolePromise())
         );
     }
 
@@ -224,16 +249,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function readable($stream): Promise
     {
-        $deferred = $this->deferred();
-        $this->reactEventLoop->addReadStream(
-            $stream,
-            function ($stream) use ($deferred) {
-                $this->reactEventLoop->removeReadStream($stream);
-                $deferred->resolve($stream);
-            }
-        );
-
-        return $deferred->getPromise();
+        return $this->streamLoop->readable($this, $stream);
     }
 
     /**
@@ -241,15 +257,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function writable($stream): Promise
     {
-        $deferred = $this->deferred();
-        $this->reactEventLoop->addWriteStream(
-            $stream,
-            function ($stream) use ($deferred) {
-                $this->reactEventLoop->removeWriteStream($stream);
-                $deferred->resolve($stream);
-            }
-        );
-
-        return $deferred->getPromise();
+        return $this->streamLoop->writable($this, $stream);
     }
 }

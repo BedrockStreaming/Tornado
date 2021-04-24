@@ -8,6 +8,9 @@ before_script:
   - phpenv config-rm xdebug.ini
   - composer install
 
+before_install:
+  - printf "\n" | pecl install swoole
+
 env:
   - TASK=tests-unit
   - TASK=tests-examples

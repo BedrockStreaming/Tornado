@@ -153,7 +153,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $promises
         );
 
-        foreach ($promises as $index => $promise) {
+        foreach ($promises as $promise) {
             \Amp\Promise\rethrow(new \Amp\Coroutine($wrapPromise($promise)));
         }
 
