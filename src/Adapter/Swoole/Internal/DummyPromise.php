@@ -8,24 +8,16 @@ use Throwable;
 
 final class DummyPromise implements Promise, Deferred
 {
-    /**
-     * @var bool
-     */
+    /** @var bool */
     private $isPending;
 
-    /**
-     * @var mixed
-     */
+    /** @var mixed */
     private $value;
 
-    /**
-     * @var Throwable|null
-     */
+    /** @var Throwable|null */
     private $exception;
 
-    /**
-     * @var callable[]
-     */
+    /** @var callable[] */
     private $callbacks;
 
     public function __construct(?callable $callback = null)

@@ -66,11 +66,12 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
             Coroutine::create(function () use ($generator, $deferred, $fnWrapGenerator) {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
+
                     return;
                 }
 
                 $promise = DummyPromise::wrap($generator->current());
-                if($this->isPending($promise)) {
+                if ($this->isPending($promise)) {
                     $cid = Coroutine::getCid();
                     $promise->addCallback(function () use ($cid) {
                         Coroutine::resume($cid);
@@ -96,7 +97,7 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
         $wg = new Coroutine\WaitGroup();
         $result = [];
         foreach ($promises as $index => $promise) {
-            $this->async((static function() use($wg, &$result, $index, $promise){
+            $this->async((static function () use ($wg, &$result, $index, $promise) {
                 $wg->add();
                 $result[$index] = yield $promise;
                 $wg->done();
@@ -104,7 +105,7 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
         }
 
         $deferred = $this->deferred();
-        Coroutine::create(function() use($wg, $deferred, &$result) {
+        Coroutine::create(function () use ($wg, $deferred, &$result) {
             $wg->wait();
             $deferred->resolve($result);
         });

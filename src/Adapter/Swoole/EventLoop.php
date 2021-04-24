@@ -77,7 +77,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $cid = Coroutine::getCid();
         $this->cids[] = $cid;
         Coroutine::yield();
-
     }
 
     private function createPromise(): DummyPromise
