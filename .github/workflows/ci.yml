@@ -1,17 +1,39 @@
-name: php-cs-fixer
-on: [push, pull_request]
+name: Code Quality
+
+on:
+    push:
+        branches:
+            - master
+    pull_request:
 
 jobs:
-    php-cs-fixer:
-        name: php-cs-fixer
+    code-quality:
+        name: Code Quality
         runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                php: [ '7.2', '7.3', '7.4' ]
+
         steps:
-            - name: Setup PHP
-              uses: shivammathur/setup-php@v1
+            - name: 'Init repository'
+              uses: actions/checkout@v2
+
+            - name: 'Setup PHP'
+              uses: shivammathur/setup-php@v2
               with:
-                  php-version: '7.4'
-                  extensions: mbstring, intl, gd, xml, dom, json, fileinfo, curl, zip, iconv
-                  tools: php-cs-fixer
-            - uses: actions/checkout@master
-            - run: composer install --prefer-dist
-            - run: composer code-style-check
+                  php-version: ${{ matrix.php }}
+                  extensions: mbstring, intl, gd, xml, dom, json, fileinfo, curl, zip, iconv, swoole
+                  tools: composer
+
+            - name: "Install dependencies"
+              run: composer install
+
+            - name: 'Tests unit'
+              run: composer tests-unit
+
+            - name: 'Tests examples'
+              run: composer tests-examples
+
+            - name: 'Static analysis'
+              run: composer static-analysis
