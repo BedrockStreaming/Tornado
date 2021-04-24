@@ -8,9 +8,24 @@ use Throwable;
 
 final class DummyPromise implements Promise, Deferred
 {
-    private bool $isPending;
-    private mixed $value;
-    private ?Throwable $exception;
+    /**
+     * @var bool
+     */
+    private $isPending;
+
+    /**
+     * @var mixed
+     */
+    private $value;
+
+    /**
+     * @var Throwable|null
+     */
+    private $exception;
+
+    /**
+     * @var callable[]
+     */
     private $callbacks;
 
     public function __construct(?callable $callback = null)
@@ -43,6 +58,7 @@ final class DummyPromise implements Promise, Deferred
 
         $this->isPending = false;
         $this->value = $value;
+
         foreach ($this->callbacks as $callback) {
             ($callback)($this);
         }

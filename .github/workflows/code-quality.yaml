@@ -1,0 +1,39 @@
+name: Code Quality
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: [ '7.2', '7.3' ]
+
+    steps:
+      - name: 'Init repository'
+        uses: actions/checkout@v2
+
+      - name: 'Setup PHP'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: xsl, swoole
+          tools: composer
+
+      - name: "Install dependencies"
+        run: composer install
+
+      - name: 'Tests unit'
+        run: composer tests-unit
+
+      - name: 'Tests examples'
+        run: composer tests-examples
+
+      - name: 'Static analysis'
+        run: composer static-analysis

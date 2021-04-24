@@ -7,8 +7,10 @@ interface EventLoop
     /**
      * Waits the resolution of a promise, and returns its value.
      * You should use this function once for your global result.
+     *
+     * @return mixed
      */
-    public function wait(Promise $promise): mixed;
+    public function wait(Promise $promise);
 
     /**
      * Registers a generator in the event loop to execute it asynchronously.

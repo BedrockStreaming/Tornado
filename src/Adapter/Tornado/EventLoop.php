@@ -26,7 +26,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function wait(Promise $promise): mixed
+    public function wait(Promise $promise)
     {
         $promiseIsPending = true;
         $finalAction = function () {throw new \Error('Impossible to resolve the promise, no more task to execute..'); };

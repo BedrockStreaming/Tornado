@@ -23,7 +23,7 @@ class YieldEventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function wait(Promise $promise): mixed
+    public function wait(Promise $promise)
     {
         $value = null;
         $this->async((static function () use ($promise, &$value): \Generator {

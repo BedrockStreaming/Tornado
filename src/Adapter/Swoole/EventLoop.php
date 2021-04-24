@@ -57,10 +57,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         //Event::exit();
     }
 
-    private function shiftCoroutine(): mixed
+    private function shiftCoroutine(): void
     {
         if (count($this->cids) === 0) {
-            return null;
+            return;
         }
 
         $cid = array_shift($this->cids);
@@ -70,17 +70,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         } else {
             $this->shiftCoroutine();
         }
-
-        return $cid;
     }
 
-    private function pushCoroutine(): mixed
+    private function pushCoroutine(): void
     {
         $cid = Coroutine::getCid();
         $this->cids[] = $cid;
         Coroutine::yield();
 
-        return $cid;
     }
 
     private function createPromise(): DummyPromise
@@ -144,7 +141,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /**
      * {@inheritdoc}
      */
-    public function wait(Promise $promise): mixed
+    public function wait(Promise $promise)
     {
         $promise = DummyPromise::wrap($promise);
 
