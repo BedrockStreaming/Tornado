@@ -18,7 +18,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 {
     private $cids;
     private $oldCids;
-    private $pendingThrowPromises;
+    private $unhandledFailingPromises;
 
     public function __construct()
     {
@@ -28,7 +28,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
         $this->cids = [];
         $this->oldCids = [];
-        $this->pendingThrowPromises = [];
+        $this->unhandledFailingPromises = [];
     }
 
     public function __destruct()
@@ -82,7 +82,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function createPromise(): DummyPromise
     {
-        return new DummyPromise(function (DummyPromise $promise) {
+        return new DummyPromise(function () {
             $this->shiftCoroutine();
         });
     }
@@ -91,9 +91,9 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         if ($value instanceof DummyPromise && !$this->isPending($value)) {
             if ($value->getException() !== null) {
-                foreach ($this->pendingThrowPromises as $index => $promise) {
+                foreach ($this->unhandledFailingPromises as $index => $promise) {
                     if ($promise === $value) {
-                        unset($this->pendingThrowPromises[$index]);
+                        unset($this->unhandledFailingPromises[$index]);
                     }
                 }
                 throw $value->getException();
@@ -108,7 +108,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
         }
 
-        foreach ($this->pendingThrowPromises as $p) {
+        foreach ($this->unhandledFailingPromises as $p) {
             $this->getValue($p);
         }
 
@@ -179,17 +179,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                         $generator->throw($exception);
                         $fnWrapGenerator($generator, $deferred);
                     } catch (\Throwable $throwable) {
-                        $this->pendingThrowPromises[] = $deferred;
+                        $this->unhandledFailingPromises[] = $deferred;
                         $deferred->reject($throwable);
                     }
                 }
             });
         };
 
-        $deferred = $this->createPromise();
+        $deferred = $this->deferred();
         $fnWrapGenerator($generator, $deferred);
 
-        return $deferred;
+        return $deferred->getPromise();
     }
 
     /**
@@ -202,7 +202,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled([]);
         }
 
-        $deferred = $this->createPromise();
+        $deferred = $this->deferred();
         $result = [array_fill(0, $ticks, false)];
 
         // To ensure that the last resolved promise resolves the global promise immediately
@@ -229,7 +229,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $this->async($waitOnePromise($index, $promise));
         }
 
-        return $deferred;
+        return $deferred->getPromise();
     }
 
     /**
@@ -254,7 +254,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled(null);
         }
 
-        $deferred = $this->createPromise();
+        $deferred = $this->deferred();
 
         foreach ($promises as $promise) {
             DummyPromise::wrap($promise)->addCallback(function (DummyPromise $promise) use ($deferred) {
@@ -268,7 +268,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             });
         }
 
-        return $deferred;
+        return $deferred->getPromise();
     }
 
     /**
@@ -298,15 +298,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        $promise = $this->createPromise();
-        Coroutine::create(function () use ($promise) {
+        $deferred = $this->deferred();
+        Coroutine::create(function () use ($deferred) {
             $this->pushCoroutine();
             // Coroutine::defer(function () use ($promise) {
-            $promise->resolve(null);
+            $deferred->resolve(null);
             // });
         });
 
-        return $promise;
+        return $deferred->getPromise();
     }
 
     /**
@@ -314,15 +314,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        $promise = $this->createPromise();
-        Coroutine::create(function () use ($milliseconds, $promise) {
+        $deferred = $this->deferred();
+        Coroutine::create(function () use ($milliseconds, $deferred) {
             $this->pushCoroutine();
             // Coroutine::sleep($milliseconds / 1000);
             usleep($milliseconds * 1000);
-            $promise->resolve(null);
+            $deferred->resolve(null);
         });
 
-        return $promise;
+        return $deferred->getPromise();
     }
 
     /**
