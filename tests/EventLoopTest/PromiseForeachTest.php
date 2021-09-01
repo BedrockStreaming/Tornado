@@ -10,6 +10,7 @@ trait PromiseForeachTest
 
     /**
      * Helper function to test that promiseForeach works for array AND iterator inputs.
+     *
      * @param mixed[] $input
      * @param mixed[] $expected
      */
