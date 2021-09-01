@@ -37,3 +37,6 @@ jobs:
 
             - name: 'Static analysis'
               run: composer static-analysis
+
+            - name: 'Code style check'
+              run: composer code-style-check
