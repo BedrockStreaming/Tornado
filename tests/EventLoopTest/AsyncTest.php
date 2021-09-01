@@ -9,7 +9,7 @@ trait AsyncTest
 {
     abstract protected function createEventLoop(): EventLoop;
 
-    public function testDummyGenerator()
+    public function testDummyGenerator(): void
     {
         $expectedValue = 42;
         $generator = (function ($value): \Generator {
@@ -26,7 +26,7 @@ trait AsyncTest
         );
     }
 
-    public function testDummyGeneratorThrowing()
+    public function testDummyGeneratorThrowing(): void
     {
         $expectedException = new class() extends \Exception {
         };
@@ -42,7 +42,7 @@ trait AsyncTest
         $eventLoop->wait($promise);
     }
 
-    public function testYieldingInvalidValueMayThrowAnError()
+    public function testYieldingInvalidValueMayThrowAnError(): void
     {
         $createGenerator = function (): \Generator {
             yield 'Something that is not a promise.';
@@ -56,7 +56,7 @@ trait AsyncTest
         $eventLoop->wait($promise);
     }
 
-    public function testYieldingGenerator()
+    public function testYieldingGenerator(): void
     {
         $createGenerator = function (EventLoop $eventLoop, $a, $b, $c): \Generator {
             $result = '';
@@ -73,11 +73,13 @@ trait AsyncTest
         $this->assertSame('ABC', $eventLoop->wait($promise));
     }
 
-    public function testYieldingGeneratorWithRejectedPromise()
+    public function testYieldingGeneratorWithRejectedPromise(): void
     {
         $createGenerator = function (EventLoop $eventLoop, \Exception $exception): \Generator {
             try {
                 yield $eventLoop->promiseRejected($exception);
+
+                return 'not catched :(';
             } catch (\Throwable $exception) {
                 return $exception;
             }
@@ -94,7 +96,7 @@ trait AsyncTest
         );
     }
 
-    public function testSubGenerators()
+    public function testSubGenerators(): void
     {
         $eventLoop = $this->createEventLoop();
         $createGenerator = function (Promise ...$promises): \Generator {
@@ -120,7 +122,7 @@ trait AsyncTest
         $this->assertSame([1, [2, 3], 4], $eventLoop->wait($promise));
     }
 
-    public function testSubGeneratorThrowing()
+    public function testSubGeneratorThrowing(): void
     {
         $eventLoop = $this->createEventLoop();
         $throwingGenerator = function (\Throwable $throwable) use ($eventLoop): \Generator {
@@ -148,7 +150,7 @@ trait AsyncTest
         $this->assertSame('Error Message', $eventLoop->wait($promise));
     }
 
-    public function testYieldingForTheSameFulfilledPromise()
+    public function testYieldingForTheSameFulfilledPromise(): void
     {
         $eventLoop = $this->createEventLoop();
         $commonPromise = $eventLoop->idle();
@@ -170,7 +172,7 @@ trait AsyncTest
         );
     }
 
-    public function testYieldingForTheSameRejectedPromise()
+    public function testYieldingForTheSameRejectedPromise(): void
     {
         $expectedMessage = 'Common Exception';
         $eventLoop = $this->createEventLoop();
@@ -197,7 +199,7 @@ trait AsyncTest
         );
     }
 
-    public function testEventLoopFirstTick()
+    public function testEventLoopFirstTick(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -212,7 +214,7 @@ trait AsyncTest
         $this->assertSame(1, $count);
     }
 
-    public function testEventLoopShouldThrowInCaseOfUncaughtExceptionInBackgroundGenerator()
+    public function testEventLoopShouldThrowInCaseOfUncaughtExceptionInBackgroundGenerator(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -236,7 +238,7 @@ trait AsyncTest
         gc_collect_cycles();
     }
 
-    public function testEventLoopShouldNotThrowInCaseOfExplicitlyRejectedPromise()
+    public function testEventLoopShouldNotThrowInCaseOfExplicitlyRejectedPromise(): void
     {
         $eventLoop = $this->createEventLoop();
 

@@ -17,7 +17,7 @@ abstract class EventLoopTest extends TestCase
 
     abstract protected function createEventLoop(): EventLoop;
 
-    public function testFulfilledPromise()
+    public function testFulfilledPromise(): void
     {
         $expectedValue = 1664;
 
@@ -30,7 +30,7 @@ abstract class EventLoopTest extends TestCase
         );
     }
 
-    public function testRejectedPromise()
+    public function testRejectedPromise(): void
     {
         $expectedException = new class() extends \Exception {
         };
@@ -42,7 +42,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop->wait($promise);
     }
 
-    public function testIdle($expectedSequence = 'ABCABA')
+    public function testIdle(string $expectedSequence = 'ABCABA'): void
     {
         $eventLoop = $this->createEventLoop();
         $outputBuffer = '';
@@ -63,7 +63,7 @@ abstract class EventLoopTest extends TestCase
         $this->assertSame($expectedSequence, $outputBuffer);
     }
 
-    public function testDelay()
+    public function testDelay(): void
     {
         $expectedDelay = 42; /*ms*/
         $eventLoop = $this->createEventLoop();
@@ -80,7 +80,7 @@ abstract class EventLoopTest extends TestCase
         $this->assertLessThanOrEqual($expectedDelay + 10, $duration);
     }
 
-    public function testDeferredResolved()
+    public function testDeferredResolved(): void
     {
         $expectedValue = 'Caramba!';
         $eventLoop = $this->createEventLoop();
@@ -108,7 +108,7 @@ abstract class EventLoopTest extends TestCase
         );
     }
 
-    public function testDeferredRejected()
+    public function testDeferredRejected(): void
     {
         $expectedException = new class() extends \Exception {
         };
@@ -133,7 +133,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop->wait($promise);
     }
 
-    public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved()
+    public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved(): void
     {
         $eventLoop = $this->createEventLoop();
         $count = 0;
@@ -150,7 +150,7 @@ abstract class EventLoopTest extends TestCase
         $this->assertLessThanOrEqual(2, $count);
     }
 
-    public function testWaitFunctionShouldThrowIfPromiseCannotBeResolved()
+    public function testWaitFunctionShouldThrowIfPromiseCannotBeResolved(): void
     {
         $eventLoop = $this->createEventLoop();
         $deferred = $eventLoop->deferred();
@@ -160,7 +160,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop->wait($deferred->getPromise());
     }
 
-    public function testExceptionBeforeYieldAreCatchable()
+    public function testExceptionBeforeYieldAreCatchable(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -172,6 +172,8 @@ abstract class EventLoopTest extends TestCase
         $createGenerator = function () use ($failingPromise): \Generator {
             try {
                 yield $failingPromise;
+
+                return 'not catched :(';
             } catch (\Exception $e) {
                 return 'catched!';
             }

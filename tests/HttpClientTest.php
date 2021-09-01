@@ -11,11 +11,14 @@ use PHPUnit\Framework\TestCase;
 abstract class HttpClientTest extends TestCase
 {
     /**
-     * @param array $responsesOrExceptions Psr7\Response to return, or \Exception to throw
+     * @param Response[]|\Exception[] $responsesOrExceptions Psr7\Response to return, or \Exception to throw
      */
     abstract protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): HttpClient;
 
-    public function eventLoopProvider()
+    /**
+     * @return \Generator<string, array>
+     */
+    public function eventLoopProvider(): \Generator
     {
         yield 'Tornado (synchronous)' => [new \M6Web\Tornado\Adapter\Tornado\SynchronousEventLoop()];
         yield 'Tornado' => [new \M6Web\Tornado\Adapter\Tornado\EventLoop()];
@@ -26,7 +29,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @dataProvider eventLoopProvider
      */
-    public function testGetValidUrl(EventLoop $eventLoop)
+    public function testGetValidUrl(EventLoop $eventLoop): void
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,
@@ -43,7 +46,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @dataProvider eventLoopProvider
      */
-    public function testGetNotFoundUrl(EventLoop $eventLoop)
+    public function testGetNotFoundUrl(EventLoop $eventLoop): void
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,
@@ -60,7 +63,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @dataProvider eventLoopProvider
      */
-    public function testGetServerErrorUrl(EventLoop $eventLoop)
+    public function testGetServerErrorUrl(EventLoop $eventLoop): void
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,
@@ -78,7 +81,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @dataProvider eventLoopProvider
      */
-    public function testInvalidUrl(EventLoop $eventLoop)
+    public function testInvalidUrl(EventLoop $eventLoop): void
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,
@@ -95,7 +98,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @dataProvider eventLoopProvider
      */
-    public function testSynchronousRequests(EventLoop $eventLoop)
+    public function testSynchronousRequests(EventLoop $eventLoop): void
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,
@@ -119,7 +122,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @dataProvider eventLoopProvider
      */
-    public function testAsynchronousRequests(EventLoop $eventLoop)
+    public function testAsynchronousRequests(EventLoop $eventLoop): void
     {
         $httpClient = $this->createHttpClient(
             $eventLoop,

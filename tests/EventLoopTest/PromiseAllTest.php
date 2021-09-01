@@ -8,7 +8,7 @@ trait PromiseAllTest
 {
     abstract protected function createEventLoop(): EventLoop;
 
-    public function testPromiseAllShouldResolvePromisesArray()
+    public function testPromiseAllShouldResolvePromisesArray(): void
     {
         $expectedValues = [1, 'ok', new \stdClass(), ['array']];
 
@@ -22,7 +22,7 @@ trait PromiseAllTest
         );
     }
 
-    public function testPromiseAllShouldRejectIfAnyInputPromiseRejects()
+    public function testPromiseAllShouldRejectIfAnyInputPromiseRejects(): void
     {
         $expectedException = new class() extends \Exception {
         };
@@ -39,7 +39,7 @@ trait PromiseAllTest
         $eventLoop->wait($promise);
     }
 
-    public function testPromiseAllShouldResolveEmptyInput()
+    public function testPromiseAllShouldResolveEmptyInput(): void
     {
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->promiseAll();
@@ -50,7 +50,7 @@ trait PromiseAllTest
         );
     }
 
-    public function testPromiseAllShouldPreserveTheOrderOfArrayWhenResolvingAsyncPromises()
+    public function testPromiseAllShouldPreserveTheOrderOfArrayWhenResolvingAsyncPromises(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -75,7 +75,7 @@ trait PromiseAllTest
         );
     }
 
-    public function testPromiseAllCatchableException()
+    public function testPromiseAllCatchableException(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -87,6 +87,8 @@ trait PromiseAllTest
         $createGenerator = function () use ($eventLoop, $throwingGenerator): \Generator {
             try {
                 yield $eventLoop->promiseAll($eventLoop->async($throwingGenerator));
+
+                return 'not catched :(';
             } catch (\Exception $e) {
                 return 'catched!';
             }

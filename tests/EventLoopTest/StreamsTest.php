@@ -31,7 +31,7 @@ trait StreamsTest
         return $sockets;
     }
 
-    public function testStreamShouldReadFromWritable($expectedSequence = 'W0R0W12345R12W6R34R56R')
+    public function testStreamShouldReadFromWritable(string $expectedSequence = 'W0R0W12345R12W6R34R56R'): void
     {
         $tokens = ['0', '12345', '6'];
         [$streamIn, $streamOut] = $this->createStreamPair();
@@ -70,7 +70,7 @@ trait StreamsTest
         $this->assertSame($expectedSequence, $eventLoop->wait($readPromise));
     }
 
-    public function testStreamShouldBeWritableIfOpened()
+    public function testStreamShouldBeWritableIfOpened(): void
     {
         $eventLoop = $this->createEventLoop();
         [$streamIn, $streamOut] = $this->createStreamPair();
@@ -81,7 +81,7 @@ trait StreamsTest
         $this->assertSame($streamIn, $stream);
     }
 
-    public function testStreamShouldNotBeWritableIfClosed()
+    public function testStreamShouldNotBeWritableIfClosed(): void
     {
         $eventLoop = $this->createEventLoop();
         [$streamIn, $streamOut] = $this->createStreamPair();
@@ -106,7 +106,7 @@ trait StreamsTest
         $this->assertSame('Aborted', $result);
     }
 
-    public function testStreamShouldNotBeReadableIfClosed()
+    public function testStreamShouldNotBeReadableIfClosed(): void
     {
         $eventLoop = $this->createEventLoop();
         [$streamIn, $streamOut] = $this->createStreamPair();

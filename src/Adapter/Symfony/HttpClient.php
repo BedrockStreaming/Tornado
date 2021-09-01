@@ -79,7 +79,7 @@ class HttpClient implements \M6Web\Tornado\HttpClient
             $currentJobs = $this->jobs;
             $this->jobs = [];
             /**
-             * @var SfResponseInterface
+             * @var SfResponseInterface $response
              * @var ChunkInterface      $chunk
              */
             foreach ($this->symfonyClient->stream($currentJobs, 0) as $response => $chunk) {

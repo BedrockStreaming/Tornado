@@ -24,7 +24,7 @@ class PromiseWrapper implements Promise
     {
     }
 
-    public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection)
+    public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->isHandled = false;
@@ -40,7 +40,7 @@ class PromiseWrapper implements Promise
         return $promiseWrapper;
     }
 
-    public static function createHandled(\Amp\Promise $ampPromise)
+    public static function createHandled(\Amp\Promise $ampPromise): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->isHandled = true;
