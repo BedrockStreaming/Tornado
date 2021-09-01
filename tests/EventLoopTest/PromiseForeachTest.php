@@ -10,8 +10,10 @@ trait PromiseForeachTest
 
     /**
      * Helper function to test that promiseForeach works for array AND iterator inputs.
+     * @param mixed[] $input
+     * @param mixed[] $expected
      */
-    private function assertSameForeach(EventLoop $eventLoop, array $input, callable $callback, array $expected)
+    private function assertSameForeach(EventLoop $eventLoop, array $input, callable $callback, array $expected): void
     {
         $this->assertSame(
             $expected,
@@ -24,7 +26,7 @@ trait PromiseForeachTest
         );
     }
 
-    public function testPromiseForeachAcceptsEmptyTraversable()
+    public function testPromiseForeachAcceptsEmptyTraversable(): void
     {
         $eventLoop = $this->createEventLoop();
         $callback = function () {
@@ -34,7 +36,7 @@ trait PromiseForeachTest
         $this->assertSameForeach($eventLoop, [], $callback, []);
     }
 
-    public function testPromiseForeachShouldThrowIfCallbackDoesNotReturnGenerator()
+    public function testPromiseForeachShouldThrowIfCallbackDoesNotReturnGenerator(): void
     {
         $eventLoop = $this->createEventLoop();
         $callback = function () {
@@ -47,7 +49,7 @@ trait PromiseForeachTest
         );
     }
 
-    public function testPromiseForeachWithCallbackUsingValueOnly()
+    public function testPromiseForeachWithCallbackUsingValueOnly(): void
     {
         $eventLoop = $this->createEventLoop();
         $callback = function ($value) use ($eventLoop) {
@@ -60,7 +62,7 @@ trait PromiseForeachTest
         $this->assertSameForeach($eventLoop, $input, $callback, $input);
     }
 
-    public function testPromiseForeachWithCallbackUsingValueAndKey()
+    public function testPromiseForeachWithCallbackUsingValueAndKey(): void
     {
         $eventLoop = $this->createEventLoop();
         $callback = function ($value, $key) use ($eventLoop) {
@@ -75,7 +77,7 @@ trait PromiseForeachTest
         ));
     }
 
-    public function testPromiseForeachPropagateThrownExceptions()
+    public function testPromiseForeachPropagateThrownExceptions(): void
     {
         $eventLoop = $this->createEventLoop();
         $exception = new \LogicException();
@@ -90,15 +92,17 @@ trait PromiseForeachTest
         );
     }
 
-    public function testPromiseForeachCatchableException()
+    public function testPromiseForeachCatchableException(): void
     {
         $eventLoop = $this->createEventLoop();
         $createGenerator = function () use ($eventLoop): \Generator {
             try {
-                yield $eventLoop->promiseForeach([1], function ($value) use ($eventLoop) {
+                yield $eventLoop->promiseForeach([1], function ($value) use ($eventLoop): \Generator {
                     yield $eventLoop->idle();
                     throw new \Exception('This is a failure');
                 });
+
+                return 'Not catched :(';
             } catch (\Exception $e) {
                 return 'catched';
             }

@@ -12,9 +12,13 @@ use M6Web\Tornado\Promise;
  */
 class PendingPromise implements Promise, Deferred
 {
+    /** @var mixed */
     private $value;
+    /** @var \Throwable */
     private $throwable;
+    /** @var callable[][] */
     private $callbacks = [];
+    /** @var bool */
     private $isSettled = false;
     /** @var ?FailingPromiseCollection */
     private $failingPromiseCollection;
@@ -26,7 +30,7 @@ class PendingPromise implements Promise, Deferred
     {
     }
 
-    public static function createUnhandled(FailingPromiseCollection $failingPromiseCollection)
+    public static function createUnhandled(FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->failingPromiseCollection = $failingPromiseCollection;
@@ -34,7 +38,7 @@ class PendingPromise implements Promise, Deferred
         return $promiseWrapper;
     }
 
-    public static function createHandled()
+    public static function createHandled(): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->failingPromiseCollection = null;
@@ -103,7 +107,7 @@ class PendingPromise implements Promise, Deferred
         return $this;
     }
 
-    private function settle()
+    private function settle(): void
     {
         if ($this->isSettled) {
             throw new \LogicException('Cannot resolve/reject a promise already settled.');

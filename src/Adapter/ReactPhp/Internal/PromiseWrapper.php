@@ -24,7 +24,7 @@ class PromiseWrapper implements Promise
     {
     }
 
-    public static function createUnhandled(\React\Promise\PromiseInterface $reactPromise, FailingPromiseCollection $failingPromiseCollection)
+    public static function createUnhandled(\React\Promise\PromiseInterface $reactPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->isHandled = false;
@@ -41,7 +41,7 @@ class PromiseWrapper implements Promise
         return $promiseWrapper;
     }
 
-    public static function createHandled(\React\Promise\PromiseInterface $reactPromise)
+    public static function createHandled(\React\Promise\PromiseInterface $reactPromise): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->isHandled = true;

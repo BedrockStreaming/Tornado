@@ -16,6 +16,7 @@ class HttpClient implements \M6Web\Tornado\HttpClient
     /** @var GuzzleClientWrapper */
     private $clientWrapper;
 
+    /** @var int */
     private $nbConcurrentRequests = 0;
 
     public function __construct(EventLoop $eventLoop, GuzzleClientWrapper $clientWrapper)
@@ -67,7 +68,8 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         if (
             'https' !== $request->getUri()->getScheme()
             || !\defined('CURL_VERSION_HTTP2')
-            || !(CURL_VERSION_HTTP2 & curl_version()['features'])
+            || (($curlVersion = curl_version()) === false)
+            || !(CURL_VERSION_HTTP2 & $curlVersion['features'])
         ) {
             return $request->withProtocolVersion('1.1');
         }

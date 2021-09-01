@@ -156,11 +156,12 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
         $deferred = new class() implements Deferred {
             /** @var SynchronousEventLoop */
             public $eventLoop;
-            private $promise;
+            /** @var ?Promise */
+            private $promise = null;
 
             public function getPromise(): Promise
             {
-                if (!$this->promise) {
+                if ($this->promise === null) {
                     throw new \Error('Synchronous Deferred must be resolved/rejected before to retrieve its promise.');
                 }
 

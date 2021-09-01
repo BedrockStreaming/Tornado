@@ -40,6 +40,7 @@ interface EventLoop
 
     /**
      * Creates a promise already resolved with $value.
+     * @param mixed $value
      */
     public function promiseFulfilled($value): Promise;
 

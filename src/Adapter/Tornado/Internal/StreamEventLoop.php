@@ -16,11 +16,17 @@ class StreamEventLoop
     /** @var PendingPromise[] */
     private $pendingPromises = [];
 
+    /**
+     * @param resource $stream
+     */
     public function readable(EventLoop $eventLoop, $stream): PendingPromise
     {
         return $this->recordStream($eventLoop, $stream, $this->readStreams);
     }
 
+    /**
+     * @param resource $stream
+     */
     public function writable(EventLoop $eventLoop, $stream): PendingPromise
     {
         return $this->recordStream($eventLoop, $stream, $this->writeStreams);
@@ -58,6 +64,9 @@ class StreamEventLoop
         }
     }
 
+    /**
+     * @param resource $stream
+     */
     private function recordStream(EventLoop $eventLoop, $stream, array &$streamsList): PendingPromise
     {
         $streamId = (int) $stream;

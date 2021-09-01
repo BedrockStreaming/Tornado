@@ -12,31 +12,31 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         return new Tornado\SynchronousEventLoop();
     }
 
-    public function testIdle($expectedSequence = '')
+    public function testIdle(string $expectedSequence = ''): void
     {
         //By definition, this is not an asynchronous EventLoop
         parent::testIdle('AAABBC');
     }
 
-    public function testPromiseRaceShouldResolvePromisesArray(int $expectedValue = 2)
+    public function testPromiseRaceShouldResolvePromisesArray(int $expectedValue = 2): void
     {
         // In the synchronous case, there is no race, first promise always win
         parent::testPromiseRaceShouldResolvePromisesArray(1);
     }
 
-    public function testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(int $expectedValue = 2)
+    public function testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(int $expectedValue = 2): void
     {
         // In the synchronous case, there is no race, first promise always win
         parent::testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(1);
     }
 
-    public function testStreamShouldReadFromWritable($expectedSequence = '')
+    public function testStreamShouldReadFromWritable(string $expectedSequence = ''): void
     {
         // Never wait…
         parent::testStreamShouldReadFromWritable('W0W12345W6R01R23R45R6R');
     }
 
-    public function testDelay()
+    public function testDelay(): void
     {
         $expectedDelay = 42; /*ms*/
         $eventLoop = $this->createEventLoop();
@@ -54,14 +54,14 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         $this->assertLessThanOrEqual($expectedDelay + 10, $duration);
     }
 
-    public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved()
+    public function testWaitFunctionShouldReturnAsSoonAsPromiseIsResolved(): void
     {
         // By definition, synchronous event loop can only wait a promise if already resolved.
         // So this use case is not relevant for this particular implementation.
         $this->assertTrue(true);
     }
 
-    public function testWaitFunctionShouldThrowIfPromiseCannotBeResolved()
+    public function testWaitFunctionShouldThrowIfPromiseCannotBeResolved(): void
     {
         $eventLoop = $this->createEventLoop();
         $deferred = $eventLoop->deferred();

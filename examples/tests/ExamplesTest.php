@@ -29,7 +29,7 @@ class ExamplesTest extends TestCase
     /**
      * @dataProvider examplesProvider
      */
-    public function testExampleShouldRun(string $exampleFile, string $eventloopName, string $exampleCode)
+    public function testExampleShouldRun(string $exampleFile, string $eventloopName, string $exampleCode): void
     {
         // Sanitize loop name to create a relevant temporary filename
         $eventLoopFileId = preg_replace('/[^a-z0-9]+/', '', strtolower($eventloopName));

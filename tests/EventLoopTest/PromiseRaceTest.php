@@ -8,7 +8,7 @@ trait PromiseRaceTest
 {
     abstract protected function createEventLoop(): EventLoop;
 
-    public function testPromiseRaceShouldResolveEmptyInput()
+    public function testPromiseRaceShouldResolveEmptyInput(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -20,7 +20,7 @@ trait PromiseRaceTest
         );
     }
 
-    public function testPromiseRaceShouldResolvePromisesArray(int $expectedValue = 2)
+    public function testPromiseRaceShouldResolvePromisesArray(int $expectedValue = 2): void
     {
         $eventLoop = $this->createEventLoop();
         $d1 = $eventLoop->deferred();
@@ -54,7 +54,7 @@ trait PromiseRaceTest
         );
     }
 
-    public function testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(int $expectedValue = 2)
+    public function testPromiseRaceShouldRejectIfFirstSettledPromiseRejects(int $expectedValue = 2): void
     {
         $eventLoop = $this->createEventLoop();
         $d1 = $eventLoop->deferred();
@@ -86,7 +86,7 @@ trait PromiseRaceTest
         $eventLoop->wait($promise);
     }
 
-    public function testPromiseRaceCatchableException()
+    public function testPromiseRaceCatchableException(): void
     {
         $eventLoop = $this->createEventLoop();
 
@@ -101,6 +101,8 @@ trait PromiseRaceTest
                     $eventLoop->async($throwingGenerator),
                     $eventLoop->delay(1000)
                 );
+
+                return 'Not catched :(';
             } catch (\Exception $e) {
                 return 'catched!';
             }

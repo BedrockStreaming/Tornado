@@ -8,7 +8,9 @@ namespace M6Web\Tornado\Adapter\Tornado\Internal;
  */
 class Task
 {
+    /** @var \Generator */
     private $generator;
+    /** @var PendingPromise */
     private $promise;
 
     public function __construct(\Generator $generator, PendingPromise $pendingPromise)
