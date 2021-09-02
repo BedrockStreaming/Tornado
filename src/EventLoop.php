@@ -69,6 +69,7 @@ interface EventLoop
 
     /**
      * Returns a promise that will be resolved with the input stream when it becomes readable.
+     * ⚠️ Error handling (stream connection closed for example) might differ between implementations.
      *
      * @param resource $stream
      */
@@ -76,6 +77,7 @@ interface EventLoop
 
     /**
      * Returns a promise that will be resolved with the input stream when it becomes writable.
+     * ⚠️ Error handling (stream connection closed for example) might differ between implementations.
      *
      * @param resource $stream
      */
