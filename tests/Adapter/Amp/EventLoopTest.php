@@ -17,20 +17,4 @@ class EventLoopTest extends \M6WebTest\Tornado\EventLoopTest
         // Because Amp resolve promises in a slightly different order.
         parent::testStreamShouldReadFromWritable('W0R0W12345R12R34W6R56R');
     }
-
-    public function testStreamShouldNotBeWritableIfClosed(): void
-    {
-        assert_options(ASSERT_EXCEPTION, 1);
-        $this->expectException(\Throwable::class);
-
-        parent::testStreamShouldNotBeWritableIfClosed();
-    }
-
-    public function testStreamShouldNotBeReadableIfClosed(): void
-    {
-        assert_options(ASSERT_EXCEPTION, 1);
-        $this->expectException(\Throwable::class);
-
-        parent::testStreamShouldNotBeReadableIfClosed();
-    }
 }

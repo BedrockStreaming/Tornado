@@ -40,7 +40,7 @@ abstract class HttpClientTest extends TestCase
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertContains('This is a test', (string) $response->getBody());
+        $this->assertStringContainsString('This is a test', (string) $response->getBody());
     }
 
     /**
@@ -75,7 +75,7 @@ abstract class HttpClientTest extends TestCase
         $response = $eventLoop->wait($httpClient->sendRequest($request));
 
         $this->assertSame(500, $response->getStatusCode());
-        $this->assertContains('Error', (string) $response->getBody());
+        $this->assertStringContainsString('Error', (string) $response->getBody());
     }
 
     /**
@@ -112,11 +112,11 @@ abstract class HttpClientTest extends TestCase
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertContains('Example Domain', (string) $response->getBody());
+        $this->assertStringContainsString('Example Domain', (string) $response->getBody());
 
         $response = $eventLoop->wait($httpClient->sendRequest($request));
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertContains('Example Domain', (string) $response->getBody());
+        $this->assertStringContainsString('Example Domain', (string) $response->getBody());
     }
 
     /**
