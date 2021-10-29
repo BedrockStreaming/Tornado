@@ -49,6 +49,7 @@ trait AsyncTest
         };
 
         $eventLoop = $this->createEventLoop();
+        /** @phpstan-ignore-next-line phpstan detects the generator yields a non-promise */
         $promise = $eventLoop->async($createGenerator());
 
         $this->expectException(\Error::class);
@@ -245,6 +246,8 @@ trait AsyncTest
         $generatorWaitALittle = function () use ($eventLoop) {
             yield $eventLoop->idle();
             yield $eventLoop->idle();
+
+            return null;
         };
 
         $unwatchedRejectedPromise = $eventLoop->promiseRejected(new \Exception('Rejected Promise'));

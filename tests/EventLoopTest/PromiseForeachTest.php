@@ -46,6 +46,7 @@ trait PromiseForeachTest
 
         $this->expectException(\TypeError::class);
         $eventLoop->wait(
+            /* @phpstan-ignore-next-line phpstan detects the callback is invalid */
             $eventLoop->promiseForeach([1], $callback)
         );
     }
