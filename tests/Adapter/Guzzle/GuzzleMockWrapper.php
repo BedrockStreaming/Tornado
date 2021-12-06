@@ -10,9 +10,6 @@ final class GuzzleMockWrapper implements GuzzleClientWrapper
     /** @var \GuzzleHttp\Client */
     private $guzzleClient;
 
-    /** @var array */
-    private $transactions = [];
-
     /** @var int */
     public $ticks;
 

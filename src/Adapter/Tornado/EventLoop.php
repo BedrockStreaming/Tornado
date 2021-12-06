@@ -237,6 +237,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             while (microtime(true) < $endTime) {
                 yield $this->idle();
             }
+
+            return null;
         })());
     }
 
