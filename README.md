@@ -1,7 +1,7 @@
 # Tornado 🌪🐎
 <img src="assets/Tornado-Logo.png?raw=true" width="250" align="right" alt="Tornado Logo">
 
-[![Build Status](https://travis-ci.com/M6Web/Tornado.svg?branch=master)](https://travis-ci.com/M6Web/Tornado)
+[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2FBedrockStreaming%2FTornado%2Fbadge%3Fref%3Dmaster&style=flat)](https://actions-badge.atrox.dev/BedrockStreaming/Tornado/goto?ref=master)
 
 A library for asynchronous programming in [Php](https://secure.php.net/).
 
