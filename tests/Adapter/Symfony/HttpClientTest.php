@@ -4,7 +4,6 @@ namespace M6WebTest\Tornado\Adapter\Symfony;
 
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
-use Psr\Http\Message\ResponseInterface;
 
 class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
 {
@@ -12,10 +11,13 @@ class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
     {
         $callback = function ($method, $url, $options) use (&$responsesOrExceptions) {
             $response = array_shift($responsesOrExceptions);
+            if ($response === null) {
+                throw new \Exception('No more response to return.');
+            }
+
             if ($response instanceof \Exception) {
                 throw $response;
             }
-            /* @var ResponseInterface $response */
 
             return new \Symfony\Component\HttpClient\Response\MockResponse(
                 (string) $response->getBody(),

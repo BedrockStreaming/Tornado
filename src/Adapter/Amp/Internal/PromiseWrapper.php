@@ -8,10 +8,14 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
+ * @template TValue
+ *
+ * @implements Promise<TValue>
  */
 class PromiseWrapper implements Promise
 {
-    /** @var \Amp\Promise */
+    /** @var \Amp\Promise<TValue> */
     private $ampPromise;
 
     /** @var bool */
@@ -24,6 +28,11 @@ class PromiseWrapper implements Promise
     {
     }
 
+    /**
+     * @param \Amp\Promise<TValue> $ampPromise
+     *
+     * @return static<TValue>
+     */
     public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self();
@@ -40,6 +49,11 @@ class PromiseWrapper implements Promise
         return $promiseWrapper;
     }
 
+    /**
+     * @param \Amp\Promise<TValue> $ampPromise
+     *
+     * @return static<TValue>
+     */
     public static function createHandled(\Amp\Promise $ampPromise): self
     {
         $promiseWrapper = new self();
@@ -49,11 +63,19 @@ class PromiseWrapper implements Promise
         return $promiseWrapper;
     }
 
+    /**
+     * @return \Amp\Promise<TValue>
+     */
     public function getAmpPromise(): \Amp\Promise
     {
         return $this->ampPromise;
     }
 
+    /**
+     * @param Promise<TValue> $promise
+     *
+     * @return static<TValue>
+     */
     public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
