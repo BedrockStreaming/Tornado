@@ -1,15 +1,5 @@
 parameters:
-	checkMissingIterableValueType: false
-	checkGenericClassInNonGenericObjectType: false
 	ignoreErrors:
-		-
-			message: '#Negated boolean expression is always true\.#'
-			path: src/Adapter/Amp/Internal/PromiseWrapper.php
-			count: 1
-		-
-			message: '#Negated boolean expression is always true\.#'
-			path: src/Adapter/ReactPhp/Internal/PromiseWrapper.php
-			count: 1
 		-
 			message: '#Anonymous function should return Generator but empty return statement found.#'
 			path: src/Adapter/Tornado/EventLoop.php
@@ -22,3 +12,7 @@ parameters:
 			message: '#Unreachable statement - code above always terminates\.#'
 			path: tests/EventLoopTest.php
 			count: 3
+		-
+			identifier: missingType.iterableValue
+		-
+			identifier: missingType.generics

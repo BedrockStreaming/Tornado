@@ -11,7 +11,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /** @var Internal\StreamEventLoop */
     private $streamLoop;
 
-    /** @var Internal\Task[] */
+    /** @var Internal\Task<mixed>[] */
     private $tasks = [];
 
     /** @var FailingPromiseCollection */
@@ -114,6 +114,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         if ($nbPromises === 0) {
             return $this->promiseFulfilled([]);
         }
+        $promises = array_values($promises);
 
         $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
         $allResults = array_fill(0, $nbPromises, false);

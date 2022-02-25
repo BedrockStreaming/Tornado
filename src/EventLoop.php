@@ -30,6 +30,8 @@ interface EventLoop
 
     /**
      * Creates a promise that will be resolved with an array of all sub-promises results.
+     *
+     * @return Promise<array>
      */
     public function promiseAll(Promise ...$promises): Promise;
 
@@ -43,6 +45,8 @@ interface EventLoop
      *
      * @param \Traversable<TKey, TValue>|array<TKey, TValue>                 $traversable Input elements
      * @param callable(TValue, TKey): \Generator<int, Promise, mixed, mixed> $function
+     *
+     * @return Promise<array>
      */
     public function promiseForeach($traversable, callable $function): Promise;
 

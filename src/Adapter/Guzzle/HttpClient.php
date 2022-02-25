@@ -77,6 +77,9 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         return $request;
     }
 
+    /**
+     * @return \Generator<int, Promise<null>>
+     */
     private function guzzleEventLoop(): \Generator
     {
         do {

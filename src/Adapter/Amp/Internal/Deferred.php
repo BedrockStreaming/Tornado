@@ -7,15 +7,21 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
+ * @template TValue
  */
 class Deferred implements \M6Web\Tornado\Deferred
 {
-    /** @var \Amp\Deferred */
+    /** @var \Amp\Deferred<TValue> */
     private $ampDeferred;
 
-    /** @var PromiseWrapper */
+    /** @var PromiseWrapper<TValue> */
     private $promise;
 
+    /**
+     * @param \Amp\Deferred<TValue>  $ampDeferred
+     * @param PromiseWrapper<TValue> $promise
+     */
     public function __construct(\Amp\Deferred $ampDeferred, PromiseWrapper $promise)
     {
         $this->ampDeferred = $ampDeferred;
@@ -30,13 +36,16 @@ class Deferred implements \M6Web\Tornado\Deferred
         return $this->promise;
     }
 
+    /**
+     * @return PromiseWrapper<TValue>
+     */
     public function getPromiseWrapper(): PromiseWrapper
     {
         return $this->promise;
     }
 
     /**
-     * {@inheritdoc}
+     * @param TValue $value
      */
     public function resolve($value): void
     {

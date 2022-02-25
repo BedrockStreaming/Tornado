@@ -9,10 +9,13 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ * @template TValue
+ *
+ * @implements Promise<TValue>
  */
 class PendingPromise implements Promise, Deferred
 {
-    /** @var mixed */
+    /** @var TValue */
     private $value;
     /** @var \Throwable */
     private $throwable;
@@ -46,6 +49,11 @@ class PendingPromise implements Promise, Deferred
         return $promiseWrapper;
     }
 
+    /**
+     * @param Promise<TValue> $promise
+     *
+     * @return self<TValue>
+     */
     public static function toHandledPromise(Promise $promise): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
@@ -58,6 +66,9 @@ class PendingPromise implements Promise, Deferred
         return $promise;
     }
 
+    /**
+     * @param TValue $value
+     */
     public function resolve($value): void
     {
         $this->settle();
@@ -78,6 +89,9 @@ class PendingPromise implements Promise, Deferred
         $this->triggerCallbacks();
     }
 
+    /**
+     * @return Promise<TValue>
+     */
     public function getPromise(): Promise
     {
         return $this;
