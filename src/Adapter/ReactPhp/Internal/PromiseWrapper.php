@@ -8,6 +8,9 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
+ * @template TValue
+ * @implements Promise<TValue>
  */
 class PromiseWrapper implements Promise
 {
@@ -19,16 +22,18 @@ class PromiseWrapper implements Promise
 
     /**
      * Use named (static) constructor instead
+     *
+     * @param \React\Promise\PromiseInterface $reactPromise
      */
-    private function __construct()
+    private function __construct(\React\Promise\PromiseInterface $reactPromise, bool $isHandled)
     {
+        $this->reactPromise = $reactPromise;
+        $this->isHandled = $isHandled;
     }
 
     public static function createUnhandled(\React\Promise\PromiseInterface $reactPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
-        $promiseWrapper = new self();
-        $promiseWrapper->isHandled = false;
-        $promiseWrapper->reactPromise = $reactPromise;
+        $promiseWrapper = new self($reactPromise, false);
         $promiseWrapper->reactPromise->then(
             null,
             function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection) {
@@ -43,11 +48,7 @@ class PromiseWrapper implements Promise
 
     public static function createHandled(\React\Promise\PromiseInterface $reactPromise): self
     {
-        $promiseWrapper = new self();
-        $promiseWrapper->isHandled = true;
-        $promiseWrapper->reactPromise = $reactPromise;
-
-        return $promiseWrapper;
+        return new self($reactPromise, true);
     }
 
     public function getReactPromise(): \React\Promise\PromiseInterface
@@ -55,6 +56,11 @@ class PromiseWrapper implements Promise
         return $this->reactPromise;
     }
 
+    /**
+     * @param Promise<TValue> $promise
+     *
+     * @return self<TValue>
+     */
     public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));

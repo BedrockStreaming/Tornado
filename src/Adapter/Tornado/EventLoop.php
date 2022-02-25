@@ -11,7 +11,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /** @var Internal\StreamEventLoop */
     private $streamLoop;
 
-    /** @var Internal\Task[] */
+    /** @var Internal\Task<mixed>[] */
     private $tasks = [];
 
     /** @var FailingPromiseCollection */
@@ -116,10 +116,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         }
 
         $globalPromise = Internal\PendingPromise::createUnhandled($this->unhandledFailingPromises);
-        $allResults = array_fill(0, $nbPromises, false);
+        $allResults = array_fill_keys(array_keys($promises), false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
-        $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
+        $waitOnePromise = function (int|string $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
             try {
                 $allResults[$index] = yield $promise;
             } catch (\Throwable $throwable) {

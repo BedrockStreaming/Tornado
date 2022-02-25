@@ -13,7 +13,7 @@ trait AsyncTest
     {
         $expectedValue = 42;
         $generator = (function ($value): \Generator {
-            return $value;
+            return $value; // @phpstan-ignore return.type (it is a generator)
             yield;  // Mandatory if we want to create a generator
         })($expectedValue);
 

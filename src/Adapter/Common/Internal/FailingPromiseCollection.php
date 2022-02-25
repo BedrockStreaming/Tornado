@@ -10,11 +10,17 @@ use M6Web\Tornado;
  */
 class FailingPromiseCollection
 {
+    /**
+     * @param Tornado\Promise<mixed> $promise
+     */
     public function watchFailingPromise(Tornado\Promise $promise, \Throwable $throwable): void
     {
         $this->registeredThrowables->attach($promise, $throwable);
     }
 
+    /**
+     * @param Tornado\Promise<mixed> $promise
+     */
     public function unwatchPromise(Tornado\Promise $promise): void
     {
         $this->registeredThrowables->detach($promise);
@@ -35,6 +41,6 @@ class FailingPromiseCollection
         $this->registeredThrowables = new \SplObjectStorage();
     }
 
-    /** @var \SplObjectStorage */
+    /** @var \SplObjectStorage<Tornado\Promise<mixed>, \Throwable> */
     private $registeredThrowables;
 }

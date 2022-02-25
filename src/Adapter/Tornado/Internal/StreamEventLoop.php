@@ -3,6 +3,7 @@
 namespace M6Web\Tornado\Adapter\Tornado\Internal;
 
 use M6Web\Tornado\EventLoop;
+use M6Web\Tornado\Promise;
 
 /**
  * @internal
@@ -13,11 +14,13 @@ class StreamEventLoop
     private $readStreams = [];
     /** @var resource[] */
     private $writeStreams = [];
-    /** @var PendingPromise[] */
+    /** @var PendingPromise<resource>[] */
     private $pendingPromises = [];
 
     /**
      * @param resource $stream
+     *
+     * @return PendingPromise<resource>
      */
     public function readable(EventLoop $eventLoop, $stream): PendingPromise
     {
@@ -26,12 +29,17 @@ class StreamEventLoop
 
     /**
      * @param resource $stream
+     *
+     * @return PendingPromise<resource>
      */
     public function writable(EventLoop $eventLoop, $stream): PendingPromise
     {
         return $this->recordStream($eventLoop, $stream, $this->writeStreams);
     }
 
+    /**
+     * @return \Generator<int, Promise<null>>
+     */
     private function internalLoop(EventLoop $eventLoop): \Generator
     {
         $except = null;
@@ -65,7 +73,10 @@ class StreamEventLoop
     }
 
     /**
-     * @param resource $stream
+     * @param resource        $stream
+     * @param array<resource> $streamsList
+     *
+     * @return PendingPromise<resource>
      */
     private function recordStream(EventLoop $eventLoop, $stream, array &$streamsList): PendingPromise
     {

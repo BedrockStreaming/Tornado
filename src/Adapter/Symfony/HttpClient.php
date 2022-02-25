@@ -71,6 +71,9 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         return $deferred->getPromise();
     }
 
+    /**
+     * @return \Generator<int, Promise<null>>
+     */
     private function symfonyEventLoop(): \Generator
     {
         do {

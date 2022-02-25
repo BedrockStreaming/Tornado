@@ -31,7 +31,7 @@
         "ext-curl": "^7.3|^8.0",
         "react/event-loop": "^1.0",
         "react/promise": "^2.7",
-        "phpstan/phpstan": "^0.12",
+        "phpstan/phpstan": "^1.0",
         "symfony/http-client": "^4.3",
         "psr/http-factory": "^1.0",
         "http-interop/http-factory-guzzle": "^1.0"
@@ -51,7 +51,7 @@
     "scripts": {
         "tests-unit": "./bin/phpunit --testsuite='Tornado Test Suite'",
         "tests-examples": "./bin/phpunit --testsuite='Tornado Examples'",
-        "static-analysis": "./bin/phpstan analyse src tests --level=7 --no-progress -vvv",
+        "static-analysis": "./bin/phpstan analyse src tests --level=8 --no-progress -vvv",
         "code-style-check": "./bin/php-cs-fixer fix --dry-run --verbose",
         "code-style-fix": "./bin/php-cs-fixer fix"
     }
