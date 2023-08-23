@@ -10,13 +10,10 @@ use M6Web\Tornado\Promise;
  */
 class Deferred implements \M6Web\Tornado\Deferred
 {
-    /** @var \Amp\Deferred */
-    private $ampDeferred;
+    private \Amp\DeferredFuture $ampDeferred;
+    private PromiseWrapper $promise;
 
-    /** @var PromiseWrapper */
-    private $promise;
-
-    public function __construct(\Amp\Deferred $ampDeferred, PromiseWrapper $promise)
+    public function __construct(\Amp\DeferredFuture $ampDeferred, PromiseWrapper $promise)
     {
         $this->ampDeferred = $ampDeferred;
         $this->promise = $promise;
@@ -40,7 +37,7 @@ class Deferred implements \M6Web\Tornado\Deferred
      */
     public function resolve($value): void
     {
-        $this->ampDeferred->resolve($value);
+        $this->ampDeferred->complete($value);
     }
 
     /**
@@ -48,6 +45,6 @@ class Deferred implements \M6Web\Tornado\Deferred
      */
     public function reject(\Throwable $throwable): void
     {
-        $this->ampDeferred->fail($throwable);
+        $this->ampDeferred->error($throwable);
     }
 }
