@@ -93,11 +93,11 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $result = [];
 
             foreach ($promises as $promise) {
-              $result[] = yield Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises);
+                $result[] = yield Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises);
             }
 
             return $result;
-          };
+        };
 
         return $this->async($generator());
     }
