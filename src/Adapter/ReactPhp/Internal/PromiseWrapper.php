@@ -8,6 +8,9 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
+ * @template TValue
+ * @implements Promise<TValue>
  */
 class PromiseWrapper implements Promise
 {
@@ -55,6 +58,11 @@ class PromiseWrapper implements Promise
         return $this->reactPromise;
     }
 
+    /**
+     * @param Promise<TValue> $promise
+     *
+     * @return static<TValue>
+     */
     public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));

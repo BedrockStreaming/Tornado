@@ -11,7 +11,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     /** @var Internal\StreamEventLoop */
     private $streamLoop;
 
-    /** @var Internal\Task[] */
+    /** @var Internal\Task<mixed>[] */
     private $tasks = [];
 
     /** @var FailingPromiseCollection */

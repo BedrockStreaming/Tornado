@@ -16,7 +16,7 @@ abstract class HttpClientTest extends TestCase
     abstract protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): HttpClient;
 
     /**
-     * @return \Generator<string, array>
+     * @return \Generator<string, array<EventLoop>>
      */
     public function eventLoopProvider(): \Generator
     {

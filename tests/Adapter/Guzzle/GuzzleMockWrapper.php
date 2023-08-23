@@ -4,6 +4,7 @@ namespace M6WebTest\Tornado\Adapter\Guzzle;
 
 use GuzzleHttp\Promise;
 use M6Web\Tornado\Adapter\Guzzle\GuzzleClientWrapper;
+use Psr\Http\Message\ResponseInterface;
 
 final class GuzzleMockWrapper implements GuzzleClientWrapper
 {
@@ -13,6 +14,9 @@ final class GuzzleMockWrapper implements GuzzleClientWrapper
     /** @var int */
     public $ticks;
 
+    /**
+     * @param ResponseInterface[]|\Exception[] $queue
+     */
     public function __construct(array $queue)
     {
         $this->ticks = 0;
