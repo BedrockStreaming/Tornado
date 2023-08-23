@@ -67,9 +67,9 @@ function compareMethods(EventLoop $eventLoop)
 
 // Choose your adapter.
 $eventLoop = new Adapter\Tornado\EventLoop();
-//$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
-//$eventLoop = new Adapter\Amp\EventLoop();
-//$eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
+// $eventLoop = new Adapter\Tornado\SynchronousEventLoop();
+// $eventLoop = new Adapter\Amp\EventLoop();
+// $eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 echo "Let's start!\n";
 // Run the event loop until our goal promise is reached.

@@ -77,7 +77,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         $deferred = new \Amp\DeferredFuture();
-        \Amp\async(fn() => $wrapper($generator, $deferred));
+        \Amp\async(fn () => $wrapper($generator, $deferred));
 
         return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
     }
@@ -87,7 +87,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $generator = function() use ($promises): \Generator {
+        $generator = function () use ($promises): \Generator {
             $result = [];
 
             foreach ($promises as $promise) {
@@ -125,7 +125,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $deferred = new \Amp\DeferredFuture();
         $isFirstPromise = true;
 
-        $wrapPromise = function (\Amp\Future $future) use ($deferred, &$isFirstPromise) {
+        $wrapPromise = function (Future $future) use ($deferred, &$isFirstPromise) {
             try {
                 $result = $future->await();
                 if ($isFirstPromise) {
@@ -151,7 +151,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         );
 
         foreach ($futures as $index => $future) {
-            \Amp\async(fn() => $wrapPromise($future));
+            \Amp\async(fn () => $wrapPromise($future));
         }
 
         return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
@@ -194,7 +194,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $deferred = new \Amp\DeferredFuture();
 
-        \Revolt\EventLoop::delay($milliseconds/1000, function () use ($deferred) {
+        \Revolt\EventLoop::delay($milliseconds / 1000, function () use ($deferred) {
             $deferred->complete();
         });
 

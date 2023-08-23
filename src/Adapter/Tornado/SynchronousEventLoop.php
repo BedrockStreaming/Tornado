@@ -154,10 +154,8 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     public function deferred(): Deferred
     {
         $deferred = new class() implements Deferred {
-            /** @var SynchronousEventLoop */
-            public $eventLoop;
-            /** @var ?Promise */
-            private $promise = null;
+            public SynchronousEventLoop $eventLoop;
+            private ?Promise $promise = null;
 
             public function getPromise(): Promise
             {

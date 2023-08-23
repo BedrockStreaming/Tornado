@@ -24,7 +24,7 @@ class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
     {
         $httpClient = new \M6Web\Tornado\Adapter\Guzzle\HttpClient(
             $eventLoop,
-            ($wrapper = new GuzzleMockWrapper([new Response(200, [], 'Example Domain')]))
+            $wrapper = new GuzzleMockWrapper([new Response(200, [], 'Example Domain')])
         );
         $request = new Request('GET', 'http://www.example.com');
 
