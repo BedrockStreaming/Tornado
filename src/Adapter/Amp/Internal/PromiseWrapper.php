@@ -19,25 +19,21 @@ class PromiseWrapper implements Promise
 {
     /**
      * Use named (static) constructor instead
-     *
-     * @param \Amp\Promise<TValue> $ampPromise
      */
     private function __construct(
-        private readonly \Amp\Promise $ampPromise,
+        private readonly \Amp\Future $ampPromise,
         private bool $isHandled,
     ) {
     }
 
     /**
-     * @param \Amp\Promise<TValue> $ampPromise
-     *
      * @return self<TValue>
      */
-    public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
+    public static function createUnhandled(\Amp\Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self($ampPromise, false);
-        $promiseWrapper->ampPromise->onResolve(
-            function (?\Throwable $reason, $value) use ($promiseWrapper, $failingPromiseCollection): void {
+        $promiseWrapper->ampPromise->catch(
+            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection): void {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
                 }
@@ -48,19 +44,16 @@ class PromiseWrapper implements Promise
     }
 
     /**
-     * @param \Amp\Promise<TValue> $ampPromise
-     *
      * @return self<TValue>
      */
-    public static function createHandled(\Amp\Promise $ampPromise): self
+    public static function createHandled(\Amp\Future $ampPromise): self
     {
+      $ampPromise->ignore();
+
         return new self($ampPromise, true);
     }
 
-    /**
-     * @return \Amp\Promise<TValue>
-     */
-    public function getAmpPromise(): \Amp\Promise
+    public function getAmpFuture(): \Amp\Future
     {
         return $this->ampPromise;
     }
@@ -75,6 +68,7 @@ class PromiseWrapper implements Promise
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         $promise->isHandled = true;
+        $promise->getAmpFuture()->ignore();
         $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;
