@@ -3,6 +3,7 @@
 namespace M6Web\Tornado\Adapter\Amp;
 
 use Amp\Future;
+use Amp\Internal\FutureIterator;
 use M6Web\Tornado\Adapter\Common;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
@@ -87,17 +88,23 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $generator = function () use ($promises): \Generator {
-            $result = [];
+        $futures = array_map(
+            fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise($promise,$this->unhandledFailingPromises)->getAmpFuture(),
+            $promises
+        );
 
-            foreach ($promises as $promise) {
-                $result[] = yield Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises);
+        $future = \Amp\async(function() use ($futures) {
+            [$errors, $values] = \Amp\Future\awaitAll($futures);
+
+            ksort($errors);
+            ksort($values);
+            if(count($errors) > 0) {
+                throw reset($errors);
             }
 
-            return $result;
-        };
-
-        return $this->async($generator());
+            return $values;
+        });
+        return Internal\PromiseWrapper::createUnhandled($future,$this->unhandledFailingPromises);
     }
 
     /**
