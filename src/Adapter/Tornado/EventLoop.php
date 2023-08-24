@@ -119,7 +119,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $allResults = array_fill(0, $nbPromises, false);
 
         // To ensure that the last resolved promise resolves the global promise immediately
-        $waitOnePromise = function (int $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
+        $waitOnePromise = function (int|string $index, Promise $promise) use ($globalPromise, &$nbPromises, &$allResults): \Generator {
             try {
                 $allResults[$index] = yield $promise;
             } catch (\Throwable $throwable) {

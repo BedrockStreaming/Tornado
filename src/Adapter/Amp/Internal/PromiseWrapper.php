@@ -11,11 +11,9 @@ use M6Web\Tornado\Promise;
  */
 class PromiseWrapper implements Promise
 {
-    /** @var \Amp\Promise */
-    private $ampPromise;
+    private \Amp\Future $ampPromise;
 
-    /** @var bool */
-    private $isHandled;
+    private bool $isHandled;
 
     /**
      * Use named (static) constructor instead
@@ -24,13 +22,13 @@ class PromiseWrapper implements Promise
     {
     }
 
-    public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
+    public static function createUnhandled(\Amp\Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self();
         $promiseWrapper->isHandled = false;
         $promiseWrapper->ampPromise = $ampPromise;
-        $promiseWrapper->ampPromise->onResolve(
-            function (?\Throwable $reason, $value) use ($promiseWrapper, $failingPromiseCollection) {
+        $promiseWrapper->ampPromise->catch(
+            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection) {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
                 }
@@ -40,8 +38,9 @@ class PromiseWrapper implements Promise
         return $promiseWrapper;
     }
 
-    public static function createHandled(\Amp\Promise $ampPromise): self
+    public static function createHandled(\Amp\Future $ampPromise): self
     {
+        $ampPromise->ignore();
         $promiseWrapper = new self();
         $promiseWrapper->isHandled = true;
         $promiseWrapper->ampPromise = $ampPromise;
@@ -49,7 +48,7 @@ class PromiseWrapper implements Promise
         return $promiseWrapper;
     }
 
-    public function getAmpPromise(): \Amp\Promise
+    public function getAmpFuture(): \Amp\Future
     {
         return $this->ampPromise;
     }
@@ -59,6 +58,7 @@ class PromiseWrapper implements Promise
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         $promise->isHandled = true;
+        $promise->getAmpFuture()->ignore();
         $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;

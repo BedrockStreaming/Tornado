@@ -13,6 +13,7 @@ trait AsyncTest
     {
         $expectedValue = 42;
         $generator = (function ($value): \Generator {
+            // @phpstan-ignore-next-line
             return $value;
             yield;  // Mandatory if we want to create a generator
         })($expectedValue);
