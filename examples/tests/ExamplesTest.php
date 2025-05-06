@@ -74,15 +74,15 @@ class ExamplesTest extends TestCase
     private function selectEventLoop(array $originalContent): iterable
     {
         foreach ($originalContent as &$line) {
-            if (false === strpos($line, '$eventLoop = new ')) {
+            if (!str_contains((string) $line, '$eventLoop = new ')) {
                 continue;
             }
 
             // Extract relevant name
-            $name = strstr(strstr($line, '(', true), 'Adapter\\');
+            $name = strstr(strstr((string) $line, '(', true), 'Adapter\\');
 
             // Enable current eventLoop
-            $line = ltrim($line, '/');
+            $line = ltrim((string) $line, '/');
 
             yield $name => $originalContent;
 
@@ -97,15 +97,15 @@ class ExamplesTest extends TestCase
     private function selectHttpClient(array $originalContent): iterable
     {
         foreach ($originalContent as &$line) {
-            if (false === strpos($line, '$httpClient = new ')) {
+            if (!str_contains((string) $line, '$httpClient = new ')) {
                 continue;
             }
 
             // Extract relevant name
-            $name = strstr(strstr($line, '(', true), 'Adapter\\');
+            $name = strstr(strstr((string) $line, '(', true), 'Adapter\\');
 
             // Enable current eventLoop
-            $line = ltrim($line, '/');
+            $line = ltrim((string) $line, '/');
 
             yield $name => $originalContent;
 

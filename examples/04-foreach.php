@@ -57,9 +57,7 @@ function compareMethods(EventLoop $eventLoop)
     // Using promiseForeach
     echo "=== promiseForeach ===\n";
     $start = microtime(true);
-    $result = yield $eventLoop->promiseForeach($dataSet, function ($count, $name) use ($eventLoop) {
-        return yield $eventLoop->async(asynchronousCountdown($eventLoop, $name, $count));
-    });
+    $result = yield $eventLoop->promiseForeach($dataSet, fn($count, $name) => yield $eventLoop->async(asynchronousCountdown($eventLoop, $name, $count)));
     var_dump($result);
     $duration = (microtime(true) - $start);
     echo "Duration (seconds): $duration\n";

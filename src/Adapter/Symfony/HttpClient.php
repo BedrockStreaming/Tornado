@@ -15,30 +15,16 @@ use Symfony\Contracts\HttpClient\ResponseInterface as SfResponseInterface;
 
 class HttpClient implements \M6Web\Tornado\HttpClient
 {
-    /** @var SfHttpClientInterface */
-    private $symfonyClient;
-
-    /** @var EventLoop */
-    private $eventLoop;
-
     /** @var SfResponseInterface[] */
-    private $jobs = [];
+    private array $jobs = [];
+    private int $lastRequestId = 0;
 
-    /** @var ResponseFactoryInterface */
-    private $responseFactory;
-
-    /** @var StreamFactoryInterface */
-    private $streamFactory;
-
-    /** @var int */
-    private $lastRequestId = 0;
-
-    public function __construct(SfHttpClientInterface $symfonyClient, EventLoop $eventLoop, ResponseFactoryInterface $responseFactory, StreamFactoryInterface $streamFactory)
-    {
-        $this->symfonyClient = $symfonyClient;
-        $this->eventLoop = $eventLoop;
-        $this->responseFactory = $responseFactory;
-        $this->streamFactory = $streamFactory;
+    public function __construct(
+        private readonly SfHttpClientInterface $symfonyClient,
+        private readonly EventLoop $eventLoop,
+        private readonly ResponseFactoryInterface $responseFactory,
+        private readonly StreamFactoryInterface $streamFactory
+    ) {
     }
 
     public function sendRequest(RequestInterface $request): Promise

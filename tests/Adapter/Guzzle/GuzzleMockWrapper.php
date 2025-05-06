@@ -8,14 +8,11 @@ use Psr\Http\Message\ResponseInterface;
 
 final class GuzzleMockWrapper implements GuzzleClientWrapper
 {
-    /** @var \GuzzleHttp\Client */
-    private $guzzleClient;
-
-    /** @var int */
-    public $ticks;
+    private \GuzzleHttp\Client $guzzleClient;
+    public int $ticks;
 
     /**
-     * @param ResponseInterface[]|\Exception[] $queue
+     * @param array<ResponseInterface|\Exception> $queue
      */
     public function __construct(array $queue)
     {

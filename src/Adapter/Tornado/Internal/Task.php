@@ -12,19 +12,14 @@ use M6Web\Tornado\Promise;
  */
 class Task
 {
-    /** @var \Generator<int, Promise> */
-    private $generator;
-    /** @var PendingPromise<TValue> */
-    private $promise;
-
     /**
      * @param \Generator<int, Promise> $generator
-     * @param PendingPromise<TValue>   $pendingPromise
+     * @param PendingPromise<TValue> $promise
      */
-    public function __construct(\Generator $generator, PendingPromise $pendingPromise)
-    {
-        $this->generator = $generator;
-        $this->promise = $pendingPromise;
+    public function __construct(
+        private readonly \Generator $generator,
+        private readonly PendingPromise $promise
+    ) {
     }
 
     /**
