@@ -33,6 +33,6 @@ final class GuzzleMockWrapper implements GuzzleClientWrapper
     public function tick(): void
     {
         $this->ticks++;
-        Promise\queue()->run();
+        Promise\Utils::queue()->run();
     }
 }
