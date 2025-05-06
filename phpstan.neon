@@ -9,8 +9,4 @@ parameters:
 			path: src/Adapter/Tornado/EventLoop.php
 			count: 1
 		-
-			message: '#Unreachable statement - code above always terminates\.#'
-			path: tests/EventLoopTest.php
-			count: 3
-		-
 			identifier: missingType.generics

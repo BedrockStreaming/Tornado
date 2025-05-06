@@ -8,8 +8,9 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use M6Web\Tornado\EventLoop;
+use M6WebTest\Tornado\HttpClientTestCase;
 
-class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
+class HttpClientTest extends HttpClientTestCase
 {
     protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): \M6Web\Tornado\HttpClient
     {

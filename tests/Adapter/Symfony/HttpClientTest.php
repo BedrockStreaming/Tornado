@@ -6,8 +6,9 @@ namespace M6WebTest\Tornado\Adapter\Symfony;
 
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
+use M6WebTest\Tornado\HttpClientTestCase;
 
-class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
+class HttpClientTest extends HttpClientTestCase
 {
     protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): HttpClient
     {

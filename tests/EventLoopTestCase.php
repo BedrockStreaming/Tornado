@@ -9,13 +9,13 @@ use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\Promise;
 use PHPUnit\Framework\TestCase;
 
-abstract class EventLoopTest extends TestCase
+abstract class EventLoopTestCase extends TestCase
 {
-    use EventLoopTest\AsyncTest;
-    use EventLoopTest\StreamsTest;
-    use EventLoopTest\PromiseAllTest;
-    use EventLoopTest\PromiseForeachTest;
-    use EventLoopTest\PromiseRaceTest;
+    use EventLoopTest\AsyncTestTrait;
+    use EventLoopTest\StreamsTestTrait;
+    use EventLoopTest\PromiseAllTestTrait;
+    use EventLoopTest\PromiseForeachTestTrait;
+    use EventLoopTest\PromiseRaceTestTrait;
 
     abstract protected function createEventLoop(): EventLoop;
 
@@ -166,7 +166,7 @@ abstract class EventLoopTest extends TestCase
 
         $failingPromise = $eventLoop->async((function () use ($eventLoop): \Generator {
             throw new \Exception('This is a failure');
-            yield $eventLoop->idle();
+            yield $eventLoop->idle(); // @phpstan-ignore deadCode.unreachable (Mandatory if we want to create a generator)
         })());
 
         $createGenerator = function () use ($failingPromise): \Generator {

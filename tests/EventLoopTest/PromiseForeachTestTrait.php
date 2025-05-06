@@ -6,7 +6,7 @@ namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
 
-trait PromiseForeachTest
+trait PromiseForeachTestTrait
 {
     abstract protected function createEventLoop(): EventLoop;
 

@@ -10,7 +10,7 @@ use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
 use PHPUnit\Framework\TestCase;
 
-abstract class HttpClientTest extends TestCase
+abstract class HttpClientTestCase extends TestCase
 {
     /**
      * @param Response[]|\Exception[] $responsesOrExceptions Psr7\Response to return, or \Exception to throw
@@ -20,7 +20,7 @@ abstract class HttpClientTest extends TestCase
     /**
      * @return \Generator<string, array<EventLoop>>
      */
-    public function eventLoopProvider(): \Generator
+    public static function eventLoopProvider(): \Generator
     {
         yield 'Tornado (synchronous)' => [new \M6Web\Tornado\Adapter\Tornado\SynchronousEventLoop()];
         yield 'Tornado' => [new \M6Web\Tornado\Adapter\Tornado\EventLoop()];
