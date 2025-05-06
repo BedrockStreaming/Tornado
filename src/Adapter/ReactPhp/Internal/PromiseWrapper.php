@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\ReactPhp\Internal;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -10,6 +12,7 @@ use M6Web\Tornado\Promise;
  * ⚠️ You must NOT rely on this internal implementation
  *
  * @template TValue
+ *
  * @implements Promise<TValue>
  */
 class PromiseWrapper implements Promise
@@ -19,7 +22,7 @@ class PromiseWrapper implements Promise
      */
     private function __construct(
         private readonly \React\Promise\PromiseInterface $reactPromise,
-        private bool $isHandled
+        private bool $isHandled,
     ) {
     }
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Guzzle;
 
 use GuzzleHttp\Exception\RequestException;
@@ -14,7 +16,7 @@ class HttpClient implements \M6Web\Tornado\HttpClient
 
     public function __construct(
         private readonly EventLoop $eventLoop,
-        private readonly GuzzleClientWrapper $clientWrapper
+        private readonly GuzzleClientWrapper $clientWrapper,
     ) {
     }
 

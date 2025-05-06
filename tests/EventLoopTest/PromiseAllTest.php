@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
@@ -24,7 +26,7 @@ trait PromiseAllTest
 
     public function testPromiseAllShouldRejectIfAnyInputPromiseRejects(): void
     {
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
 
         $eventLoop = $this->createEventLoop();

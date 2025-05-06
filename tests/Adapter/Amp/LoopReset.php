@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\Adapter\Amp;
 
 use PHPUnit\Framework\Test;

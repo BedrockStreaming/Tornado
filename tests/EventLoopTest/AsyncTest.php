@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
@@ -28,7 +30,7 @@ trait AsyncTest
 
     public function testDummyGeneratorThrowing(): void
     {
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
         $generator = (function ($exception): \Generator {
             throw $exception;
@@ -85,7 +87,7 @@ trait AsyncTest
                 return $exception;
             }
         };
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
 
         $eventLoop = $this->createEventLoop();

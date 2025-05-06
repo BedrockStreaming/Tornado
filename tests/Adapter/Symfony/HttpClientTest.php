@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\Adapter\Symfony;
 
 use M6Web\Tornado\EventLoop;

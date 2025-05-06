@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Guzzle;
 
 final class CurlMultiClientWrapper implements GuzzleClientWrapper

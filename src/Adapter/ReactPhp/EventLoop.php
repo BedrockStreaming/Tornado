@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\ReactPhp;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -107,7 +109,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return Internal\PromiseWrapper::createUnhandled(
             \React\Promise\all(
                 array_map(
-                    fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                    fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
                         $promise,
                         $this->unhandledFailingPromises
                     )->getReactPromise(),
@@ -139,7 +141,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return Internal\PromiseWrapper::createUnhandled(
             \React\Promise\race(
                 array_map(
-                    fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                    fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
                         $promise,
                         $this->unhandledFailingPromises
                     )->getReactPromise(),

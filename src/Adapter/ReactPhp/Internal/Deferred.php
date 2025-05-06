@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\ReactPhp\Internal;
 
 use M6Web\Tornado\Promise;
@@ -12,7 +14,7 @@ class Deferred implements \M6Web\Tornado\Deferred
 {
     public function __construct(
         private readonly \React\Promise\Deferred $reactDeferred,
-        private readonly PromiseWrapper $promise
+        private readonly PromiseWrapper $promise,
     ) {
     }
 
