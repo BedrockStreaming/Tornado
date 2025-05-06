@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Tornado\Internal;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -9,6 +11,7 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
  * @template TValue
  *
  * @implements Promise<TValue>

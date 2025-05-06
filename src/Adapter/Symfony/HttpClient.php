@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Symfony;
 
 use M6Web\Tornado\Deferred;
@@ -23,7 +25,7 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         private readonly SfHttpClientInterface $symfonyClient,
         private readonly EventLoop $eventLoop,
         private readonly ResponseFactoryInterface $responseFactory,
-        private readonly StreamFactoryInterface $streamFactory
+        private readonly StreamFactoryInterface $streamFactory,
     ) {
     }
 

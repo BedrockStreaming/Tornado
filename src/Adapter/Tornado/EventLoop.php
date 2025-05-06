@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -33,7 +35,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         Internal\PendingPromise::toHandledPromise($promise)->addCallbacks(
             function ($value) use (&$finalAction, &$promiseIsPending): void {
                 $promiseIsPending = false;
-                $finalAction = fn() => $value;
+                $finalAction = fn () => $value;
             },
             function (\Throwable $throwable) use (&$finalAction, &$promiseIsPending): void {
                 $promiseIsPending = false;
@@ -42,7 +44,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         );
 
         // Workaround to solve PhpStan false positive
-        $somethingToDo = fn(): bool => count($this->tasks) !== 0;
+        $somethingToDo = fn (): bool => count($this->tasks) !== 0;
 
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves

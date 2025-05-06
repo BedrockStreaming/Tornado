@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Amp;
 
 use M6Web\Tornado\Adapter\Common;
@@ -90,7 +92,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return Internal\PromiseWrapper::createUnhandled(
             \Amp\Promise\all(
                 array_map(
-                    fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                    fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
                         $promise,
                         $this->unhandledFailingPromises
                     )->getAmpPromise(),
@@ -142,7 +144,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         $promises = array_map(
-            fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+            fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
                 $promise,
                 $this->unhandledFailingPromises
             )->getAmpPromise(),

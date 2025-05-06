@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Amp\Internal;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -22,7 +24,7 @@ class PromiseWrapper implements Promise
      */
     private function __construct(
         private readonly \Amp\Promise $ampPromise,
-        private bool $isHandled
+        private bool $isHandled,
     ) {
     }
 

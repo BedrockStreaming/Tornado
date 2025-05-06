@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebExamples\Tornado;
 
 require __DIR__.'/../vendor/autoload.php';
@@ -57,7 +59,7 @@ function compareMethods(EventLoop $eventLoop)
     // Using promiseForeach
     echo "=== promiseForeach ===\n";
     $start = microtime(true);
-    $result = yield $eventLoop->promiseForeach($dataSet, fn($count, $name) => yield $eventLoop->async(asynchronousCountdown($eventLoop, $name, $count)));
+    $result = yield $eventLoop->promiseForeach($dataSet, fn ($count, $name) => yield $eventLoop->async(asynchronousCountdown($eventLoop, $name, $count)));
     var_dump($result);
     $duration = (microtime(true) - $start);
     echo "Duration (seconds): $duration\n";
@@ -65,9 +67,9 @@ function compareMethods(EventLoop $eventLoop)
 
 // Choose your adapter.
 $eventLoop = new Adapter\Tornado\EventLoop();
-//$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
-//$eventLoop = new Adapter\Amp\EventLoop();
-//$eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
+// $eventLoop = new Adapter\Tornado\SynchronousEventLoop();
+// $eventLoop = new Adapter\Amp\EventLoop();
+// $eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 echo "Let's start!\n";
 // Run the event loop until our goal promise is reached.

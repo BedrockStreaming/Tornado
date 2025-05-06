@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Deferred;
@@ -153,11 +155,11 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
      */
     public function deferred(): Deferred
     {
-        $deferred = new class() implements Deferred {
+        $deferred = new class implements Deferred {
             /** @var SynchronousEventLoop */
             public $eventLoop;
             /** @var ?Promise<mixed> */
-            private $promise = null;
+            private $promise;
 
             public function getPromise(): Promise
             {

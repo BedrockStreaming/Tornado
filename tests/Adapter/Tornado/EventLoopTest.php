@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Adapter\Tornado;

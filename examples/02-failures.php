@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebExamples\Tornado;
 
 require __DIR__.'/../vendor/autoload.php';
@@ -16,9 +18,9 @@ function throwingGenerator(): \Generator
 
 // Choose your adapter.
 $eventLoop = new Adapter\Tornado\EventLoop();
-//$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
-//$eventLoop = new Adapter\Amp\EventLoop();
-//$eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
+// $eventLoop = new Adapter\Tornado\SynchronousEventLoop();
+// $eventLoop = new Adapter\Amp\EventLoop();
+// $eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 echo "Let's start!\n";
 

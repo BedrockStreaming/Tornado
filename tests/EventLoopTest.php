@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado;
 
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\Promise;
 use PHPUnit\Framework\TestCase;
-use function PHPStan\dumpType;
 
 abstract class EventLoopTest extends TestCase
 {
@@ -33,7 +34,7 @@ abstract class EventLoopTest extends TestCase
 
     public function testRejectedPromise(): void
     {
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
 
         $eventLoop = $this->createEventLoop();
@@ -66,7 +67,7 @@ abstract class EventLoopTest extends TestCase
 
     public function testDelay(): void
     {
-        $expectedDelay = 42; /*ms*/
+        $expectedDelay = 42; /* ms */
         $eventLoop = $this->createEventLoop();
 
         $promise = $eventLoop->delay($expectedDelay);
@@ -111,7 +112,7 @@ abstract class EventLoopTest extends TestCase
 
     public function testDeferredRejected(): void
     {
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
         $eventLoop = $this->createEventLoop();
         $deferred = $eventLoop->deferred();
@@ -123,7 +124,7 @@ abstract class EventLoopTest extends TestCase
 
             $deferred->reject($expectedException);
         };
-        $waitingGenerator = fn(Promise $promise): \Generator => yield $promise;
+        $waitingGenerator = fn (Promise $promise): \Generator => yield $promise;
 
         $eventLoop->async($resolverGenerator($eventLoop, $deferred));
         $promise = $eventLoop->async($waitingGenerator($deferred->getPromise()));

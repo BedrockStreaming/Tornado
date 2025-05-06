@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Tornado\Internal;
 
 use M6Web\Tornado\Promise;
@@ -14,11 +16,11 @@ class Task
 {
     /**
      * @param \Generator<int, Promise> $generator
-     * @param PendingPromise<TValue> $promise
+     * @param PendingPromise<TValue>   $promise
      */
     public function __construct(
         private readonly \Generator $generator,
-        private readonly PendingPromise $promise
+        private readonly PendingPromise $promise,
     ) {
     }
 
