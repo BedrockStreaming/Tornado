@@ -43,7 +43,7 @@ for ($i = 0; $i < 10; $i++) {
     $promises[] = $eventLoop->async(monitorRequest(
             $eventLoop,
             $httpClient,
-        "https://http2.akamai.com/demo/tile-$i.png"
+        "https://1906714720.rsc.cdn77.org/http2/tiles_final/tile_$i.png"
     ));
 }
 
