@@ -32,7 +32,7 @@
         "react/event-loop": "^1.0",
         "react/promise": "^2.7",
         "phpstan/phpstan": "^1.0",
-        "symfony/http-client": "^4.3",
+        "symfony/http-client": "^6.4",
         "psr/http-factory": "^1.0",
         "http-interop/http-factory-guzzle": "^1.0"
     },
