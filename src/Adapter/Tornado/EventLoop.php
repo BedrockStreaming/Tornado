@@ -29,22 +29,20 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         $promiseIsPending = true;
-        $finalAction = function () {throw new \Error('Impossible to resolve the promise, no more task to execute..'); };
+        $finalAction = function (): void {throw new \Error('Impossible to resolve the promise, no more task to execute..'); };
         Internal\PendingPromise::toHandledPromise($promise)->addCallbacks(
-            function ($value) use (&$finalAction, &$promiseIsPending) {
+            function ($value) use (&$finalAction, &$promiseIsPending): void {
                 $promiseIsPending = false;
-                $finalAction = function () use ($value) {return $value; };
+                $finalAction = fn() => $value;
             },
-            function (\Throwable $throwable) use (&$finalAction, &$promiseIsPending) {
+            function (\Throwable $throwable) use (&$finalAction, &$promiseIsPending): void {
                 $promiseIsPending = false;
-                $finalAction = function () use ($throwable) {throw $throwable; };
+                $finalAction = function () use ($throwable): void {throw $throwable; };
             }
         );
 
         // Workaround to solve PhpStan false positive
-        $somethingToDo = function (): bool {
-            return count($this->tasks) !== 0;
-        };
+        $somethingToDo = fn(): bool => count($this->tasks) !== 0;
 
         do {
             // Copy tasks list to safely allow tasks addition by tasks themselves
@@ -64,7 +62,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     }
                     $blockingPromise = Internal\PendingPromise::toHandledPromise($blockingPromise);
                     $blockingPromise->addCallbacks(
-                        function ($value) use ($task) {
+                        function ($value) use ($task): void {
                             try {
                                 $task->getGenerator()->send($value);
                                 $this->tasks[] = $task;
@@ -72,7 +70,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                                 $task->getPromise()->reject($exception);
                             }
                         },
-                        function (\Throwable $throwable) use ($task) {
+                        function (\Throwable $throwable) use ($task): void {
                             try {
                                 $task->getGenerator()->throw($throwable);
                                 $this->tasks[] = $task;

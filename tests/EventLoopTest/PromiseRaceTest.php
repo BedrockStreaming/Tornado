@@ -103,7 +103,7 @@ trait PromiseRaceTest
                 );
 
                 return 'Not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched!';
             }
         };

@@ -10,16 +10,10 @@ use M6Web\Tornado\Promise;
  */
 class Deferred implements \M6Web\Tornado\Deferred
 {
-    /** @var \React\Promise\Deferred */
-    private $reactDeferred;
-
-    /** @var PromiseWrapper */
-    private $promise;
-
-    public function __construct(\React\Promise\Deferred $reactDeferred, PromiseWrapper $promiseWrapper)
-    {
-        $this->reactDeferred = $reactDeferred;
-        $this->promise = $promiseWrapper;
+    public function __construct(
+        private readonly \React\Promise\Deferred $reactDeferred,
+        private readonly PromiseWrapper $promise
+    ) {
     }
 
     /**
@@ -38,7 +32,7 @@ class Deferred implements \M6Web\Tornado\Deferred
     /**
      * {@inheritdoc}
      */
-    public function resolve($value): void
+    public function resolve(mixed $value): void
     {
         $this->reactDeferred->resolve($value);
     }

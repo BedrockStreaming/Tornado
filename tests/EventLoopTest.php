@@ -6,6 +6,7 @@ use M6Web\Tornado\Deferred;
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\Promise;
 use PHPUnit\Framework\TestCase;
+use function PHPStan\dumpType;
 
 abstract class EventLoopTest extends TestCase
 {
@@ -38,7 +39,7 @@ abstract class EventLoopTest extends TestCase
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->promiseRejected($expectedException);
 
-        $this->expectException(get_class($expectedException));
+        $this->expectException($expectedException::class);
         $eventLoop->wait($promise);
     }
 
@@ -122,14 +123,12 @@ abstract class EventLoopTest extends TestCase
 
             $deferred->reject($expectedException);
         };
-        $waitingGenerator = function (Promise $promise): \Generator {
-            return yield $promise;
-        };
+        $waitingGenerator = fn(Promise $promise): \Generator => yield $promise;
 
         $eventLoop->async($resolverGenerator($eventLoop, $deferred));
         $promise = $eventLoop->async($waitingGenerator($deferred->getPromise()));
 
-        $this->expectException(get_class($expectedException));
+        $this->expectException($expectedException::class);
         $eventLoop->wait($promise);
     }
 
@@ -174,7 +173,7 @@ abstract class EventLoopTest extends TestCase
                 yield $failingPromise;
 
                 return 'not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched!';
             }
         };

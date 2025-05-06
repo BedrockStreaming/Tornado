@@ -14,10 +14,8 @@ interface Deferred
 
     /**
      * Resolves associated promise.
-     *
-     * @param mixed $value
      */
-    public function resolve($value): void;
+    public function resolve(mixed $value): void;
 
     /**
      * Rejects associated promise.

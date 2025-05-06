@@ -38,7 +38,7 @@ trait AsyncTest
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->async($generator);
 
-        $this->expectException(get_class($expectedException));
+        $this->expectException($expectedException::class);
         $eventLoop->wait($promise);
     }
 

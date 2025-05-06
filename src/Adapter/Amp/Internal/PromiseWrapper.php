@@ -15,21 +15,15 @@ use M6Web\Tornado\Promise;
  */
 class PromiseWrapper implements Promise
 {
-    /** @var \Amp\Promise<TValue> */
-    private $ampPromise;
-
-    /** @var bool */
-    private $isHandled;
-
     /**
      * Use named (static) constructor instead
      *
      * @param \Amp\Promise<TValue> $ampPromise
      */
-    private function __construct(\Amp\Promise $ampPromise, bool $isHandled)
-    {
-        $this->ampPromise = $ampPromise;
-        $this->isHandled = $isHandled;
+    private function __construct(
+        private readonly \Amp\Promise $ampPromise,
+        private bool $isHandled
+    ) {
     }
 
     /**
@@ -41,7 +35,7 @@ class PromiseWrapper implements Promise
     {
         $promiseWrapper = new self($ampPromise, false);
         $promiseWrapper->ampPromise->onResolve(
-            function (?\Throwable $reason, $value) use ($promiseWrapper, $failingPromiseCollection) {
+            function (?\Throwable $reason, $value) use ($promiseWrapper, $failingPromiseCollection): void {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
                 }

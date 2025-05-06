@@ -90,12 +90,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return Internal\PromiseWrapper::createUnhandled(
             \Amp\Promise\all(
                 array_map(
-                    function (Promise $promise) {
-                        return Internal\PromiseWrapper::toHandledPromise(
-                            $promise,
-                            $this->unhandledFailingPromises
-                        )->getAmpPromise();
-                    },
+                    fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                        $promise,
+                        $this->unhandledFailingPromises
+                    )->getAmpPromise(),
                     $promises
                 )
             ),
@@ -144,12 +142,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         };
 
         $promises = array_map(
-            function (Promise $promise) {
-                return Internal\PromiseWrapper::toHandledPromise(
-                    $promise,
-                    $this->unhandledFailingPromises
-                )->getAmpPromise();
-            },
+            fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                $promise,
+                $this->unhandledFailingPromises
+            )->getAmpPromise(),
             $promises
         );
 
@@ -184,7 +180,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $deferred = new \Amp\Deferred();
 
-        \Amp\Loop::defer(function () use ($deferred) {
+        \Amp\Loop::defer(function () use ($deferred): void {
             $deferred->resolve();
         });
 
@@ -198,7 +194,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     {
         $deferred = new \Amp\Deferred();
 
-        \Amp\Loop::delay($milliseconds, function () use ($deferred) {
+        \Amp\Loop::delay($milliseconds, function () use ($deferred): void {
             $deferred->resolve();
         });
 
@@ -226,7 +222,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
         \Amp\Loop::onReadable(
             $stream,
-            function ($watcherId, $stream) use ($deferred) {
+            function ($watcherId, $stream) use ($deferred): void {
                 \Amp\Loop::cancel($watcherId);
                 $deferred->resolve($stream);
             }
@@ -244,7 +240,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
         \Amp\Loop::onWritable(
             $stream,
-            function ($watcherId, $stream) use ($deferred) {
+            function ($watcherId, $stream) use ($deferred): void {
                 \Amp\Loop::cancel($watcherId);
                 $deferred->resolve($stream);
             }

@@ -23,10 +23,10 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
         assert($promise instanceof Internal\PendingPromise, 'Input promise was not created by this adapter.');
         $result = null;
         $promise->addCallbacks(
-            function ($value) use (&$result) {
+            function ($value) use (&$result): void {
                 $result = $value;
             },
-            function (\Throwable $throwable) {
+            function (\Throwable $throwable): void {
                 throw $throwable;
             }
         );
@@ -46,10 +46,10 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
                     throw new \Error('Asynchronous function is yielding a ['.gettype($promise).'] instead of a Promise.');
                 }
                 $promise->addCallbacks(
-                    function ($value) use ($generator) {
+                    function ($value) use ($generator): void {
                         $generator->send($value);
                     },
-                    function (\Throwable $throwable) use ($generator) {
+                    function (\Throwable $throwable) use ($generator): void {
                         // Since this exception is caught, remove it from the list
                         $index = array_search($throwable, $this->asyncThrowables, true);
                         if ($index !== false) {
@@ -75,7 +75,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         try {
-            return $this->promiseFulfilled(array_map([$this, 'wait'], $promises));
+            return $this->promiseFulfilled(array_map($this->wait(...), $promises));
         } catch (\Throwable $exception) {
             return $this->promiseRejected($exception);
         }
@@ -168,7 +168,7 @@ class SynchronousEventLoop implements \M6Web\Tornado\EventLoop
                 return $this->promise;
             }
 
-            public function resolve($value): void
+            public function resolve(mixed $value): void
             {
                 $this->promise = $this->eventLoop->promiseFulfilled($value);
             }

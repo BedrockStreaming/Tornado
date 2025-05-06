@@ -30,7 +30,7 @@ trait PromiseForeachTest
     public function testPromiseForeachAcceptsEmptyTraversable(): void
     {
         $eventLoop = $this->createEventLoop();
-        $callback = function () {
+        $callback = function (): void {
             throw new \Exception("Shouldn't be reached!");
         };
 
@@ -40,7 +40,7 @@ trait PromiseForeachTest
     public function testPromiseForeachShouldThrowIfCallbackDoesNotReturnGenerator(): void
     {
         $eventLoop = $this->createEventLoop();
-        $callback = function () {
+        $callback = function (): void {
             return;
         };
 
@@ -105,7 +105,7 @@ trait PromiseForeachTest
                 });
 
                 return 'Not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched';
             }
         };

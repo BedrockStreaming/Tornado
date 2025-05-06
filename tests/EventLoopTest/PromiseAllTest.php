@@ -35,7 +35,7 @@ trait PromiseAllTest
             $eventLoop->promiseRejected(new \Exception())
         );
 
-        $this->expectException(get_class($expectedException));
+        $this->expectException($expectedException::class);
         $eventLoop->wait($promise);
     }
 
@@ -89,7 +89,7 @@ trait PromiseAllTest
                 yield $eventLoop->promiseAll($eventLoop->async($throwingGenerator));
 
                 return 'not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched!';
             }
         };

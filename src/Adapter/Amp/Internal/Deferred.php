@@ -12,20 +12,12 @@ use M6Web\Tornado\Promise;
  */
 class Deferred implements \M6Web\Tornado\Deferred
 {
-    /** @var \Amp\Deferred<TValue> */
-    private $ampDeferred;
-
-    /** @var PromiseWrapper<TValue> */
-    private $promise;
-
     /**
      * @param \Amp\Deferred<TValue>  $ampDeferred
      * @param PromiseWrapper<TValue> $promise
      */
-    public function __construct(\Amp\Deferred $ampDeferred, PromiseWrapper $promise)
+    public function __construct(private readonly \Amp\Deferred $ampDeferred, private readonly PromiseWrapper $promise)
     {
-        $this->ampDeferred = $ampDeferred;
-        $this->promise = $promise;
     }
 
     /**

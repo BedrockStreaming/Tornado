@@ -14,21 +14,13 @@ use M6Web\Tornado\Promise;
  */
 class PromiseWrapper implements Promise
 {
-    /** @var \React\Promise\PromiseInterface */
-    private $reactPromise;
-
-    /** @var bool */
-    private $isHandled;
-
     /**
      * Use named (static) constructor instead
-     *
-     * @param \React\Promise\PromiseInterface $reactPromise
      */
-    private function __construct(\React\Promise\PromiseInterface $reactPromise, bool $isHandled)
-    {
-        $this->reactPromise = $reactPromise;
-        $this->isHandled = $isHandled;
+    private function __construct(
+        private readonly \React\Promise\PromiseInterface $reactPromise,
+        private bool $isHandled
+    ) {
     }
 
     public static function createUnhandled(\React\Promise\PromiseInterface $reactPromise, FailingPromiseCollection $failingPromiseCollection): self
@@ -36,7 +28,7 @@ class PromiseWrapper implements Promise
         $promiseWrapper = new self($reactPromise, false);
         $promiseWrapper->reactPromise->then(
             null,
-            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection) {
+            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection): void {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
                 }
