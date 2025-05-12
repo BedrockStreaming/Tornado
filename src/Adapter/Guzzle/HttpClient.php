@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Guzzle;
 
 use GuzzleHttp\Exception\RequestException;
@@ -10,19 +12,12 @@ use Psr\Http\Message\ResponseInterface;
 
 class HttpClient implements \M6Web\Tornado\HttpClient
 {
-    /** @var EventLoop */
-    private $eventLoop;
+    private int $nbConcurrentRequests = 0;
 
-    /** @var GuzzleClientWrapper */
-    private $clientWrapper;
-
-    /** @var int */
-    private $nbConcurrentRequests = 0;
-
-    public function __construct(EventLoop $eventLoop, GuzzleClientWrapper $clientWrapper)
-    {
-        $this->eventLoop = $eventLoop;
-        $this->clientWrapper = $clientWrapper;
+    public function __construct(
+        private readonly EventLoop $eventLoop,
+        private readonly GuzzleClientWrapper $clientWrapper,
+    ) {
     }
 
     /**
@@ -34,11 +29,11 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         $deferred = $this->eventLoop->deferred();
 
         $this->clientWrapper->getClient()->sendAsync($request)->then(
-            function (ResponseInterface $response) use ($deferred) {
+            function (ResponseInterface $response) use ($deferred): void {
                 $deferred->resolve($response);
                 $this->nbConcurrentRequests--;
             },
-            function (\Exception $exception) use ($deferred) {
+            function (\Exception $exception) use ($deferred): void {
                 // Guzzle may throw an exception with a valid response.
                 // We handle them as a success.
                 if ($exception instanceof RequestException && $exception->getResponse()) {
@@ -77,6 +72,9 @@ class HttpClient implements \M6Web\Tornado\HttpClient
         return $request;
     }
 
+    /**
+     * @return \Generator<int, Promise<null>>
+     */
     private function guzzleEventLoop(): \Generator
     {
         do {

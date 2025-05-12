@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebExamplesTests\Tornado;
 
 use PHPUnit\Framework\TestCase;
@@ -8,7 +10,7 @@ class ExamplesTest extends TestCase
 {
     private const EXAMPLES_DIR = __DIR__.'/../';
 
-    public function examplesProvider()
+    public static function examplesProvider(): \Generator
     {
         $iterator = new \FilesystemIterator(
             self::EXAMPLES_DIR,
@@ -20,7 +22,7 @@ class ExamplesTest extends TestCase
                 continue;
             }
 
-            foreach ($this->extractExampleCode($fileinfo->getRealPath()) as $eventloopName => $code) {
+            foreach (self::extractExampleCode($fileinfo->getRealPath()) as $eventloopName => $code) {
                 yield "$name $eventloopName" => [$fileinfo->getRealPath(), $eventloopName, $code];
             }
         }
@@ -50,14 +52,14 @@ class ExamplesTest extends TestCase
         }
     }
 
-    private function extractExampleCode(string $exampleFile): iterable
+    private static function extractExampleCode(string $exampleFile): iterable
     {
         $originalContent = file($exampleFile);
 
-        foreach ($this->selectEventLoop($originalContent) as $nameEL => $contentEL) {
+        foreach (self::selectEventLoop($originalContent) as $nameEL => $contentEL) {
             $exampleUseHttpClient = false;
 
-            foreach ($this->selectHttpClient($contentEL) as $nameHC => $contentELHC) {
+            foreach (self::selectHttpClient($contentEL) as $nameHC => $contentELHC) {
                 $exampleUseHttpClient = true;
                 yield "$nameEL - $nameHC" => implode('', $contentELHC);
             }
@@ -71,18 +73,18 @@ class ExamplesTest extends TestCase
     /**
      * Very naive approach to iterate over various eventLoop implementations.
      */
-    private function selectEventLoop(array $originalContent): iterable
+    private static function selectEventLoop(array $originalContent): iterable
     {
         foreach ($originalContent as &$line) {
-            if (false === strpos($line, '$eventLoop = new ')) {
+            if (!str_contains((string) $line, '$eventLoop = new ')) {
                 continue;
             }
 
             // Extract relevant name
-            $name = strstr(strstr($line, '(', true), 'Adapter\\');
+            $name = strstr(strstr((string) $line, '(', true), 'Adapter\\');
 
             // Enable current eventLoop
-            $line = ltrim($line, '/');
+            $line = ltrim((string) $line, '/');
 
             yield $name => $originalContent;
 
@@ -94,18 +96,18 @@ class ExamplesTest extends TestCase
     /**
      * Very naive approach to iterate over various httpClient implementations.
      */
-    private function selectHttpClient(array $originalContent): iterable
+    private static function selectHttpClient(array $originalContent): iterable
     {
         foreach ($originalContent as &$line) {
-            if (false === strpos($line, '$httpClient = new ')) {
+            if (!str_contains((string) $line, '$httpClient = new ')) {
                 continue;
             }
 
             // Extract relevant name
-            $name = strstr(strstr($line, '(', true), 'Adapter\\');
+            $name = strstr(strstr((string) $line, '(', true), 'Adapter\\');
 
             // Enable current eventLoop
-            $line = ltrim($line, '/');
+            $line = ltrim((string) $line, '/');
 
             yield $name => $originalContent;
 

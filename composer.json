@@ -20,19 +20,19 @@
         }
     },
     "require": {
-        "php": "^7.3|^8.0",
-        "psr/http-message": "^1.0"
+        "php": "^8.1",
+        "psr/http-message": "^1.0|^2.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.4.4",
+        "phpunit/phpunit": "^10.5",
         "amphp/amp": "^2.0",
-        "guzzlehttp/guzzle": "^6.3",
+        "guzzlehttp/guzzle": "^7.4",
         "m6web/php-cs-fixer-config": "^2.0",
-        "ext-curl": "^7.3|^8.0",
+        "ext-curl": "^8.1",
         "react/event-loop": "^1.0",
         "react/promise": "^2.7",
-        "phpstan/phpstan": "^0.12",
-        "symfony/http-client": "^4.3",
+        "phpstan/phpstan": "^1.0",
+        "symfony/http-client": "^6.4",
         "psr/http-factory": "^1.0",
         "http-interop/http-factory-guzzle": "^1.0"
     },
@@ -51,7 +51,7 @@
     "scripts": {
         "tests-unit": "./bin/phpunit --testsuite='Tornado Test Suite'",
         "tests-examples": "./bin/phpunit --testsuite='Tornado Examples'",
-        "static-analysis": "./bin/phpstan analyse src tests --level=7 --no-progress -vvv",
+        "static-analysis": "./bin/phpstan analyse src tests --level=8 --no-progress -vvv",
         "code-style-check": "./bin/php-cs-fixer fix --dry-run --verbose",
         "code-style-fix": "./bin/php-cs-fixer fix"
     }

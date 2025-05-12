@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\ReactPhp\Internal;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -8,30 +10,28 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
+ * @template TValue
+ *
+ * @implements Promise<TValue>
  */
 class PromiseWrapper implements Promise
 {
-    /** @var \React\Promise\PromiseInterface */
-    private $reactPromise;
-
-    /** @var bool */
-    private $isHandled;
-
     /**
      * Use named (static) constructor instead
      */
-    private function __construct()
-    {
+    private function __construct(
+        private readonly \React\Promise\PromiseInterface $reactPromise,
+        private bool $isHandled,
+    ) {
     }
 
     public static function createUnhandled(\React\Promise\PromiseInterface $reactPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
-        $promiseWrapper = new self();
-        $promiseWrapper->isHandled = false;
-        $promiseWrapper->reactPromise = $reactPromise;
+        $promiseWrapper = new self($reactPromise, false);
         $promiseWrapper->reactPromise->then(
             null,
-            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection) {
+            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection): void {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
                 }
@@ -43,11 +43,7 @@ class PromiseWrapper implements Promise
 
     public static function createHandled(\React\Promise\PromiseInterface $reactPromise): self
     {
-        $promiseWrapper = new self();
-        $promiseWrapper->isHandled = true;
-        $promiseWrapper->reactPromise = $reactPromise;
-
-        return $promiseWrapper;
+        return new self($reactPromise, true);
     }
 
     public function getReactPromise(): \React\Promise\PromiseInterface
@@ -55,6 +51,11 @@ class PromiseWrapper implements Promise
         return $this->reactPromise;
     }
 
+    /**
+     * @param Promise<TValue> $promise
+     *
+     * @return self<TValue>
+     */
     public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));

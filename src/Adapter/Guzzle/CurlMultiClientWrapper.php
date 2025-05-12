@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Guzzle;
 
 final class CurlMultiClientWrapper implements GuzzleClientWrapper
@@ -13,12 +15,12 @@ final class CurlMultiClientWrapper implements GuzzleClientWrapper
     /**
      * CurlMultiClientWrapper constructor.
      *
-     * @param array $clientConfig     configuration for \GuzzleHttp\Client, check corresponding documentation.
-     *                                'handler' configuration will be ignored since built in this wrapper
-     * @param array $curlMultiOptions options for \GuzzleHttp\Handler\CurlMultiHandler, check corresponding documentation.
-     *                                Default value for 'select_timeout' is 0
-     * @param array $middlewareStack  set of name => handler to push on the top of created \GuzzleHttp\HandlerStack,
-     *                                check corresponding documentation
+     * @param array<string, mixed>    $clientConfig     configuration for \GuzzleHttp\Client, check corresponding documentation.
+     *                                                  'handler' configuration will be ignored since built in this wrapper
+     * @param array<string, mixed>    $curlMultiOptions options for \GuzzleHttp\Handler\CurlMultiHandler, check corresponding documentation.
+     *                                                  Default value for 'select_timeout' is 0
+     * @param array<string, callable> $middlewareStack  set of name => handler to push on the top of created \GuzzleHttp\HandlerStack,
+     *                                                  check corresponding documentation
      */
     public function __construct(array $clientConfig = [], array $curlMultiOptions = [], array $middlewareStack = [])
     {

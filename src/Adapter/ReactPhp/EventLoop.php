@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\ReactPhp;
 
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
@@ -8,15 +10,10 @@ use M6Web\Tornado\Promise;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
-    /** @var \React\EventLoop\LoopInterface */
-    private $reactEventLoop;
+    private FailingPromiseCollection $unhandledFailingPromises;
 
-    /** @var FailingPromiseCollection */
-    private $unhandledFailingPromises;
-
-    public function __construct(\React\EventLoop\LoopInterface $reactEventLoop)
+    public function __construct(private readonly \React\EventLoop\LoopInterface $reactEventLoop)
     {
-        $this->reactEventLoop = $reactEventLoop;
         $this->unhandledFailingPromises = new FailingPromiseCollection();
     }
 
@@ -29,12 +26,12 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $isRejected = false;
         $promiseSettled = false;
         Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getReactPromise()->then(
-            function ($result) use (&$value, &$promiseSettled) {
+            function ($result) use (&$value, &$promiseSettled): void {
                 $promiseSettled = true;
                 $value = $result;
                 $this->reactEventLoop->stop();
             },
-            function ($result) use (&$value, &$isRejected, &$promiseSettled) {
+            function ($result) use (&$value, &$isRejected, &$promiseSettled): void {
                 $promiseSettled = true;
                 $value = $result;
                 $isRejected = true;
@@ -65,7 +62,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator) {
+        $fnWrapGenerator = function (\Generator $generator, \React\Promise\Deferred $deferred) use (&$fnWrapGenerator): void {
             try {
                 if (!$generator->valid()) {
                     $deferred->resolve($generator->getReturn());
@@ -76,7 +73,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 }
                 Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)
                     ->getReactPromise()->then(
-                        function ($result) use ($generator, $deferred, $fnWrapGenerator) {
+                        function ($result) use ($generator, $deferred, $fnWrapGenerator): void {
                             try {
                                 $generator->send($result);
                                 $fnWrapGenerator($generator, $deferred);
@@ -84,7 +81,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                                 $deferred->reject($throwable);
                             }
                         },
-                        function ($reason) use ($generator, $deferred, $fnWrapGenerator) {
+                        function ($reason) use ($generator, $deferred, $fnWrapGenerator): void {
                             try {
                                 $generator->throw($reason);
                                 $fnWrapGenerator($generator, $deferred);
@@ -112,12 +109,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return Internal\PromiseWrapper::createUnhandled(
             \React\Promise\all(
                 array_map(
-                    function (Promise $promise) {
-                        return Internal\PromiseWrapper::toHandledPromise(
-                            $promise,
-                            $this->unhandledFailingPromises
-                        )->getReactPromise();
-                    },
+                    fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                        $promise,
+                        $this->unhandledFailingPromises
+                    )->getReactPromise(),
                     $promises
                 )
             ),
@@ -146,12 +141,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         return Internal\PromiseWrapper::createUnhandled(
             \React\Promise\race(
                 array_map(
-                    function (Promise $promise) {
-                        return Internal\PromiseWrapper::toHandledPromise(
-                            $promise,
-                            $this->unhandledFailingPromises
-                        )->getReactPromise();
-                    },
+                    fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
+                        $promise,
+                        $this->unhandledFailingPromises
+                    )->getReactPromise(),
                     $promises
                 )
             ),
@@ -182,7 +175,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function idle(): Promise
     {
         $deferred = $this->deferred();
-        $this->reactEventLoop->futureTick(function () use ($deferred) {
+        $this->reactEventLoop->futureTick(function () use ($deferred): void {
             $deferred->resolve(null);
         });
 
@@ -197,7 +190,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $deferred = $this->deferred();
         $this->reactEventLoop->addTimer(
             $milliseconds / 1000 /* milliseconds per second */ ,
-            function () use ($deferred) {
+            function () use ($deferred): void {
                 $deferred->resolve(null);
             }
         );
@@ -225,7 +218,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $deferred = $this->deferred();
         $this->reactEventLoop->addReadStream(
             $stream,
-            function ($stream) use ($deferred) {
+            function ($stream) use ($deferred): void {
                 $this->reactEventLoop->removeReadStream($stream);
                 $deferred->resolve($stream);
             }
@@ -242,7 +235,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $deferred = $this->deferred();
         $this->reactEventLoop->addWriteStream(
             $stream,
-            function ($stream) use ($deferred) {
+            function ($stream) use ($deferred): void {
                 $this->reactEventLoop->removeWriteStream($stream);
                 $deferred->resolve($stream);
             }

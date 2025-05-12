@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
 
-trait PromiseRaceTest
+trait PromiseRaceTestTrait
 {
     abstract protected function createEventLoop(): EventLoop;
 
@@ -103,7 +105,7 @@ trait PromiseRaceTest
                 );
 
                 return 'Not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched!';
             }
         };

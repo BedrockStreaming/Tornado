@@ -1,21 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\Adapter\Symfony;
 
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\HttpClient;
-use Psr\Http\Message\ResponseInterface;
+use M6WebTest\Tornado\HttpClientTestCase;
 
-class HttpClientTest extends \M6WebTest\Tornado\HttpClientTest
+class HttpClientTest extends HttpClientTestCase
 {
     protected function createHttpClient(EventLoop $eventLoop, array $responsesOrExceptions): HttpClient
     {
         $callback = function ($method, $url, $options) use (&$responsesOrExceptions) {
             $response = array_shift($responsesOrExceptions);
+            if ($response === null) {
+                throw new \Exception('No more response to return.');
+            }
+
             if ($response instanceof \Exception) {
                 throw $response;
             }
-            /* @var ResponseInterface $response */
 
             return new \Symfony\Component\HttpClient\Response\MockResponse(
                 (string) $response->getBody(),

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
 
-trait StreamsTest
+trait StreamsTestTrait
 {
     abstract protected function createEventLoop(): EventLoop;
 
@@ -46,7 +48,7 @@ trait StreamsTest
                 $sequence .= "W$token";
                 // Write twice slower
                 yield $eventLoop->idle();
-                //yield $eventLoop->idle();
+                // yield $eventLoop->idle();
             }
             fclose($stream);
         };

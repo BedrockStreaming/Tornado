@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
 
-trait PromiseAllTest
+trait PromiseAllTestTrait
 {
     abstract protected function createEventLoop(): EventLoop;
 
@@ -24,7 +26,7 @@ trait PromiseAllTest
 
     public function testPromiseAllShouldRejectIfAnyInputPromiseRejects(): void
     {
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
 
         $eventLoop = $this->createEventLoop();
@@ -35,7 +37,7 @@ trait PromiseAllTest
             $eventLoop->promiseRejected(new \Exception())
         );
 
-        $this->expectException(get_class($expectedException));
+        $this->expectException($expectedException::class);
         $eventLoop->wait($promise);
     }
 
@@ -89,7 +91,7 @@ trait PromiseAllTest
                 yield $eventLoop->promiseAll($eventLoop->async($throwingGenerator));
 
                 return 'not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched!';
             }
         };

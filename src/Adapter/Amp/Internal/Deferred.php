@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado\Adapter\Amp\Internal;
 
 use M6Web\Tornado\Promise;
@@ -7,19 +9,17 @@ use M6Web\Tornado\Promise;
 /**
  * @internal
  * ⚠️ You must NOT rely on this internal implementation
+ *
+ * @template TValue
  */
 class Deferred implements \M6Web\Tornado\Deferred
 {
-    /** @var \Amp\Deferred */
-    private $ampDeferred;
-
-    /** @var PromiseWrapper */
-    private $promise;
-
-    public function __construct(\Amp\Deferred $ampDeferred, PromiseWrapper $promise)
+    /**
+     * @param \Amp\Deferred<TValue>  $ampDeferred
+     * @param PromiseWrapper<TValue> $promise
+     */
+    public function __construct(private readonly \Amp\Deferred $ampDeferred, private readonly PromiseWrapper $promise)
     {
-        $this->ampDeferred = $ampDeferred;
-        $this->promise = $promise;
     }
 
     /**
@@ -30,13 +30,16 @@ class Deferred implements \M6Web\Tornado\Deferred
         return $this->promise;
     }
 
+    /**
+     * @return PromiseWrapper<TValue>
+     */
     public function getPromiseWrapper(): PromiseWrapper
     {
         return $this->promise;
     }
 
     /**
-     * {@inheritdoc}
+     * @param TValue $value
      */
     public function resolve($value): void
     {

@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\Adapter\Tornado;
 
 use M6Web\Tornado\Adapter\Tornado;
 use M6Web\Tornado\EventLoop;
+use M6WebTest\Tornado\EventLoopTestCase;
 
-class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
+class SynchronousEventLoopTest extends EventLoopTestCase
 {
     protected function createEventLoop(): EventLoop
     {
@@ -14,7 +17,7 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
 
     public function testIdle(string $expectedSequence = ''): void
     {
-        //By definition, this is not an asynchronous EventLoop
+        // By definition, this is not an asynchronous EventLoop
         parent::testIdle('AAABBC');
     }
 
@@ -38,7 +41,7 @@ class SynchronousEventLoopTest extends \M6WebTest\Tornado\EventLoopTest
 
     public function testDelay(): void
     {
-        $expectedDelay = 42; /*ms*/
+        $expectedDelay = 42; /* ms */
         $eventLoop = $this->createEventLoop();
 
         // For synchronous event loop, the delay is applied as soon as requested!

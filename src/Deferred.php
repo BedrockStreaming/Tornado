@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6Web\Tornado;
 
 /**
@@ -14,10 +16,8 @@ interface Deferred
 
     /**
      * Resolves associated promise.
-     *
-     * @param mixed $value
      */
-    public function resolve($value): void;
+    public function resolve(mixed $value): void;
 
     /**
      * Rejects associated promise.

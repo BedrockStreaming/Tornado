@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
 use M6Web\Tornado\Promise;
 
-trait AsyncTest
+trait AsyncTestTrait
 {
     abstract protected function createEventLoop(): EventLoop;
 
@@ -13,8 +15,8 @@ trait AsyncTest
     {
         $expectedValue = 42;
         $generator = (function ($value): \Generator {
-            return $value;
-            yield;  // Mandatory if we want to create a generator
+            return $value; // @phpstan-ignore return.type (it is a generator)
+            yield;  // @phpstan-ignore deadCode.unreachable (Mandatory if we want to create a generator)
         })($expectedValue);
 
         $eventLoop = $this->createEventLoop();
@@ -28,17 +30,17 @@ trait AsyncTest
 
     public function testDummyGeneratorThrowing(): void
     {
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
         $generator = (function ($exception): \Generator {
             throw $exception;
-            yield;  // Mandatory if we want to create a generator
+            yield;  // @phpstan-ignore deadCode.unreachable (Mandatory if we want to create a generator)
         })($expectedException);
 
         $eventLoop = $this->createEventLoop();
         $promise = $eventLoop->async($generator);
 
-        $this->expectException(get_class($expectedException));
+        $this->expectException($expectedException::class);
         $eventLoop->wait($promise);
     }
 
@@ -85,7 +87,7 @@ trait AsyncTest
                 return $exception;
             }
         };
-        $expectedException = new class() extends \Exception {
+        $expectedException = new class extends \Exception {
         };
 
         $eventLoop = $this->createEventLoop();

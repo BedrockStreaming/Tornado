@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebExamples\Tornado;
 
 require __DIR__.'/../vendor/autoload.php';
@@ -24,13 +26,13 @@ function monitorRequest(EventLoop $eventLoop, HttpClient $httpClient, string $ur
 
 // Choose your adapter.
 $eventLoop = new Adapter\Tornado\EventLoop();
-//$eventLoop = new Adapter\Tornado\SynchronousEventLoop();
-//$eventLoop = new Adapter\Amp\EventLoop();
-//$eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
+// $eventLoop = new Adapter\Tornado\SynchronousEventLoop();
+// $eventLoop = new Adapter\Amp\EventLoop();
+// $eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 // Choose your adapter
 $httpClient = new Adapter\Symfony\HttpClient(new \Symfony\Component\HttpClient\CurlHttpClient(), $eventLoop, new \Http\Factory\Guzzle\ResponseFactory(), new \Http\Factory\Guzzle\StreamFactory());
-//$httpClient = new Adapter\Guzzle\HttpClient($eventLoop, new Adapter\Guzzle\CurlMultiClientWrapper());
+// $httpClient = new Adapter\Guzzle\HttpClient($eventLoop, new Adapter\Guzzle\CurlMultiClientWrapper());
 
 // Let's call several endpoints… concurrently!
 echo "Let's start!\n";
@@ -41,9 +43,9 @@ $promises = [];
 // Check https://http2.akamai.com/demo for the full HTTP2 demonstration.
 for ($i = 0; $i < 10; $i++) {
     $promises[] = $eventLoop->async(monitorRequest(
-            $eventLoop,
-            $httpClient,
-        "https://http2.akamai.com/demo/tile-$i.png"
+        $eventLoop,
+        $httpClient,
+        "https://1906714720.rsc.cdn77.org/http2/tiles_final/tile_$i.png"
     ));
 }
 

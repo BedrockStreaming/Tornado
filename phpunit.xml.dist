@@ -1,22 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- https://phpunit.de/manual/current/en/appendixes.configuration.html -->
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
-         backupGlobals="false"
-         colors="true"
-         bootstrap="vendor/autoload.php"
->
-  <coverage>
-    <include>
-      <directory>src</directory>
-    </include>
-  </coverage>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" backupGlobals="false" colors="true" bootstrap="vendor/autoload.php" cacheDirectory=".phpunit.cache">
   <php>
     <!-- define your env variables for the test env here -->
   </php>
-  <listeners>
-    <listener class="M6WebTest\Tornado\Adapter\Amp\LoopReset"/>
-  </listeners>
   <testsuites>
     <testsuite name="Tornado Test Suite">
       <directory>tests</directory>
@@ -25,4 +12,9 @@
       <directory>examples/tests</directory>
     </testsuite>
   </testsuites>
+  <source>
+    <include>
+      <directory>src</directory>
+    </include>
+  </source>
 </phpunit>

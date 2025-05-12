@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace M6WebTest\Tornado\EventLoopTest;
 
 use M6Web\Tornado\EventLoop;
 
-trait PromiseForeachTest
+trait PromiseForeachTestTrait
 {
     abstract protected function createEventLoop(): EventLoop;
 
@@ -30,7 +32,7 @@ trait PromiseForeachTest
     public function testPromiseForeachAcceptsEmptyTraversable(): void
     {
         $eventLoop = $this->createEventLoop();
-        $callback = function () {
+        $callback = function (): void {
             throw new \Exception("Shouldn't be reached!");
         };
 
@@ -40,7 +42,7 @@ trait PromiseForeachTest
     public function testPromiseForeachShouldThrowIfCallbackDoesNotReturnGenerator(): void
     {
         $eventLoop = $this->createEventLoop();
-        $callback = function () {
+        $callback = function (): void {
             return;
         };
 
@@ -105,7 +107,7 @@ trait PromiseForeachTest
                 });
 
                 return 'Not catched :(';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 return 'catched';
             }
         };
