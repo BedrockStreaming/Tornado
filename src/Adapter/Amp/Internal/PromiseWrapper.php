@@ -51,14 +51,14 @@ class PromiseWrapper implements Promise
      */
     public static function createHandled(Future $ampPromise): self
     {
-      $ampPromise->ignore();
+        $ampPromise->ignore();
 
         return new self($ampPromise, true);
     }
 
-  /**
-   * @return Future<TValue>
-   */
+    /**
+     * @return Future<TValue>
+     */
     public function getAmpFuture(): Future
     {
         return $this->ampPromise;

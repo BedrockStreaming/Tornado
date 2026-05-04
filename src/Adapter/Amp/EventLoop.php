@@ -91,22 +91,23 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         $futures = array_map(
-            fn(Promise $promise) => Internal\PromiseWrapper::toHandledPromise($promise,$this->unhandledFailingPromises)->getAmpFuture(),
+            fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getAmpFuture(),
             $promises
         );
 
-        $future = \Amp\async(function() use ($futures) {
+        $future = \Amp\async(function () use ($futures) {
             [$errors, $values] = \Amp\Future\awaitAll($futures);
 
             ksort($errors);
             ksort($values);
-            if(count($errors) > 0) {
+            if (count($errors) > 0) {
                 throw reset($errors);
             }
 
             return $values;
         });
-        return Internal\PromiseWrapper::createUnhandled($future,$this->unhandledFailingPromises);
+
+        return Internal\PromiseWrapper::createUnhandled($future, $this->unhandledFailingPromises);
     }
 
     /**
