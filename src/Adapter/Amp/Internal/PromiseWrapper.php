@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace M6Web\Tornado\Adapter\Amp\Internal;
 
+use Amp\Future;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Promise;
 
@@ -19,9 +20,11 @@ class PromiseWrapper implements Promise
 {
     /**
      * Use named (static) constructor instead
+     *
+     * @param Future<TValue> $ampPromise
      */
     private function __construct(
-        private readonly \Amp\Future $ampPromise,
+        private readonly Future $ampPromise,
         private bool $isHandled,
     ) {
     }
@@ -29,7 +32,7 @@ class PromiseWrapper implements Promise
     /**
      * @return self<TValue>
      */
-    public static function createUnhandled(\Amp\Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
+    public static function createUnhandled(Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self($ampPromise, false);
         $promiseWrapper->ampPromise->catch(
@@ -46,14 +49,17 @@ class PromiseWrapper implements Promise
     /**
      * @return self<TValue>
      */
-    public static function createHandled(\Amp\Future $ampPromise): self
+    public static function createHandled(Future $ampPromise): self
     {
       $ampPromise->ignore();
 
         return new self($ampPromise, true);
     }
 
-    public function getAmpFuture(): \Amp\Future
+  /**
+   * @return Future<TValue>
+   */
+    public function getAmpFuture(): Future
     {
         return $this->ampPromise;
     }
