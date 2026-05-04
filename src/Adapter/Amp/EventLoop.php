@@ -18,7 +18,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         try {
-            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getAmpFuture()]);
+            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->ampFuture]);
             $this->unhandledFailingPromises->throwIfWatchedFailingPromiseExists();
 
             return $result[0] ?? null;
@@ -54,7 +54,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     $blockingPromise = Internal\PromiseWrapper::toHandledPromise(
                         $blockingPromise,
                         $this->unhandledFailingPromises
-                    )->getAmpFuture();
+                    )->ampFuture;
 
                     // Forwards promise value/exception to underlying generator
                     $blockingPromiseValue = null;
@@ -91,7 +91,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseAll(Promise ...$promises): Promise
     {
         $futures = array_map(
-            fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getAmpFuture(),
+            fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->ampFuture,
             $promises
         );
 
@@ -154,7 +154,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
                 $promise,
                 $this->unhandledFailingPromises
-            )->getAmpFuture(),
+            )->ampFuture,
             $promises
         );
 

@@ -21,10 +21,10 @@ class PromiseWrapper implements Promise
     /**
      * Use named (static) constructor instead
      *
-     * @param Future<TValue> $ampPromise
+     * @param Future<TValue> $ampFuture
      */
     private function __construct(
-        private readonly Future $ampPromise,
+        public readonly Future $ampFuture,
         private bool $isHandled,
     ) {
     }
@@ -35,7 +35,7 @@ class PromiseWrapper implements Promise
     public static function createUnhandled(Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self($ampPromise, false);
-        $promiseWrapper->ampPromise->catch(
+        $promiseWrapper->ampFuture->catch(
             function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection): void {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
@@ -57,14 +57,6 @@ class PromiseWrapper implements Promise
     }
 
     /**
-     * @return Future<TValue>
-     */
-    public function getAmpFuture(): Future
-    {
-        return $this->ampPromise;
-    }
-
-    /**
      * @param Promise<TValue> $promise
      *
      * @return self<TValue>
@@ -74,7 +66,7 @@ class PromiseWrapper implements Promise
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         $promise->isHandled = true;
-        $promise->getAmpFuture()->ignore();
+        $promise->ampFuture->ignore();
         $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;
