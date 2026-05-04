@@ -34,14 +34,6 @@ class Deferred implements \M6Web\Tornado\Deferred
     }
 
     /**
-     * @return PromiseWrapper<TValue>
-     */
-    public function getPromiseWrapper(): PromiseWrapper
-    {
-        return $this->promise;
-    }
-
-    /**
      * @param TValue $value
      */
     public function resolve($value): void
