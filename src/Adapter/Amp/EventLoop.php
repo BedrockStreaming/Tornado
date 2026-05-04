@@ -12,6 +12,13 @@ use M6Web\Tornado\Promise;
 
 class EventLoop implements \M6Web\Tornado\EventLoop
 {
+    private Common\Internal\FailingPromiseCollection $unhandledFailingPromises;
+
+    public function __construct()
+    {
+        $this->unhandledFailingPromises = new Common\Internal\FailingPromiseCollection();
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -158,7 +165,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             $promises
         );
 
-        foreach ($futures as $index => $future) {
+        foreach ($futures as $future) {
             \Amp\async(fn () => $wrapPromise($future));
         }
 
@@ -255,11 +262,4 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
         return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
     }
-
-    public function __construct()
-    {
-        $this->unhandledFailingPromises = new Common\Internal\FailingPromiseCollection();
-    }
-
-    private Common\Internal\FailingPromiseCollection $unhandledFailingPromises;
 }
