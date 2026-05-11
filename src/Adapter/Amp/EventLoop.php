@@ -104,13 +104,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         );
 
         $future = \Amp\async(function () use (&$orderedResults, $futures): array {
-            [$errors, $values] = \Amp\Future\awaitAll($futures);
-
-            ksort($errors);
-
-            if (count($errors) > 0) {
-                throw reset($errors);
-            }
+            $values = \Amp\Future\await($futures);
 
             foreach ($values as $index => $value) {
                 $orderedResults[$index] = $value;
