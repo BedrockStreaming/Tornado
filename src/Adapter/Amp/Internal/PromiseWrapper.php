@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace M6Web\Tornado\Adapter\Amp\Internal;
 
+use Amp\Future;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Promise;
 
@@ -20,24 +21,22 @@ class PromiseWrapper implements Promise
     /**
      * Use named (static) constructor instead
      *
-     * @param \Amp\Promise<TValue> $ampPromise
+     * @param Future<TValue> $ampFuture
      */
     private function __construct(
-        private readonly \Amp\Promise $ampPromise,
+        public readonly Future $ampFuture,
         private bool $isHandled,
     ) {
     }
 
     /**
-     * @param \Amp\Promise<TValue> $ampPromise
-     *
      * @return self<TValue>
      */
-    public static function createUnhandled(\Amp\Promise $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
+    public static function createUnhandled(Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
     {
         $promiseWrapper = new self($ampPromise, false);
-        $promiseWrapper->ampPromise->onResolve(
-            function (?\Throwable $reason, $value) use ($promiseWrapper, $failingPromiseCollection): void {
+        $promiseWrapper->ampFuture->catch(
+            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection): void {
                 if ($reason !== null && !$promiseWrapper->isHandled) {
                     $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
                 }
@@ -48,21 +47,13 @@ class PromiseWrapper implements Promise
     }
 
     /**
-     * @param \Amp\Promise<TValue> $ampPromise
-     *
      * @return self<TValue>
      */
-    public static function createHandled(\Amp\Promise $ampPromise): self
+    public static function createHandled(Future $ampPromise): self
     {
-        return new self($ampPromise, true);
-    }
+        $ampPromise->ignore();
 
-    /**
-     * @return \Amp\Promise<TValue>
-     */
-    public function getAmpPromise(): \Amp\Promise
-    {
-        return $this->ampPromise;
+        return new self($ampPromise, true);
     }
 
     /**
@@ -75,6 +66,7 @@ class PromiseWrapper implements Promise
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         $promise->isHandled = true;
+        $promise->ampFuture->ignore();
         $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;

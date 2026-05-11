@@ -48,7 +48,6 @@ trait StreamsTestTrait
                 $sequence .= "W$token";
                 // Write twice slower
                 yield $eventLoop->idle();
-                // yield $eventLoop->idle();
             }
             fclose($stream);
         };

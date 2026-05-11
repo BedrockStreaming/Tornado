@@ -101,4 +101,18 @@ trait PromiseAllTestTrait
             $eventLoop->wait($eventLoop->async($createGenerator()))
         );
     }
+
+    public function testPromiseAllShouldPreserveTheOrderOfArrayWithStringKeys(): void
+    {
+        $eventLoop = $this->createEventLoop();
+        $expectedValues = [
+            'c' => 1,
+            'a' => 2,
+            'b' => 3,
+        ];
+        $promises = \array_map([$eventLoop, 'promiseFulfilled'], $expectedValues);
+        $promise = $eventLoop->promiseAll(...$promises);
+
+        $this->assertSame($expectedValues, $eventLoop->wait($promise));
+    }
 }
