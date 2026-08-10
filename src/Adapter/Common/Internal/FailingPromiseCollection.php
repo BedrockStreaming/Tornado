@@ -17,7 +17,7 @@ class FailingPromiseCollection
      */
     public function watchFailingPromise(Tornado\Promise $promise, \Throwable $throwable): void
     {
-        $this->registeredThrowables->attach($promise, $throwable);
+        $this->registeredThrowables[$promise] = $throwable;
     }
 
     /**
@@ -25,7 +25,7 @@ class FailingPromiseCollection
      */
     public function unwatchPromise(Tornado\Promise $promise): void
     {
-        $this->registeredThrowables->detach($promise);
+        unset($this->registeredThrowables[$promise]);
     }
 
     public function throwIfWatchedFailingPromiseExists(): void
