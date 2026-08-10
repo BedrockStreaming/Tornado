@@ -43,7 +43,6 @@ trait PromiseForeachTestTrait
     {
         $eventLoop = $this->createEventLoop();
         $callback = function (): void {
-            return;
         };
 
         $this->expectException(\TypeError::class);
