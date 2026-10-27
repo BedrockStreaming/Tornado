@@ -43,45 +43,32 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function async(\Generator $generator): Promise
     {
-        $wrapper = function (\Generator $generator, \Amp\Deferred $deferred): \Generator {
-            try {
-                while ($generator->valid()) {
-                    $blockingPromise = $generator->current();
-                    if (!$blockingPromise instanceof Promise) {
-                        throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
-                    }
-                    $blockingPromise = Internal\PromiseWrapper::toHandledPromise(
-                        $blockingPromise,
-                        $this->unhandledFailingPromises
-                    )->getAmpPromise();
-
-                    // Forwards promise value/exception to underlying generator
-                    $blockingPromiseValue = null;
-                    $blockingPromiseException = null;
-                    try {
-                        $blockingPromiseValue = yield $blockingPromise;
-                    } catch (\Throwable $throwable) {
-                        $blockingPromiseException = $throwable;
-                    }
-                    if ($blockingPromiseException) {
-                        $generator->throw($blockingPromiseException);
-                    } else {
-                        $generator->send($blockingPromiseValue);
-                    }
+        $wrapper = function (\Generator $generator): \Generator {
+            while ($generator->valid()) {
+                $blockingPromise = $generator->current();
+                if (!$blockingPromise instanceof Promise) {
+                    throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
                 }
-            } catch (\Throwable $throwable) {
-                $deferred->fail($throwable);
+                $blockingPromise = Internal\PromiseWrapper::toHandledPromise(
+                    $blockingPromise,
+                    $this->unhandledFailingPromises
+                )->getAmpPromise();
 
-                return;
+                // Forwards promise value/exception to underlying generator
+                try {
+                    $blockingPromiseValue = yield $blockingPromise;
+                } catch (\Throwable $throwable) {
+                    $generator->throw($throwable);
+
+                    continue;
+                }
+                $generator->send($blockingPromiseValue);
             }
 
-            $deferred->resolve($generator->getReturn());
+            return $generator->getReturn();
         };
 
-        $deferred = new \Amp\Deferred();
-        \Amp\Promise\rethrow(new \Amp\Coroutine($wrapper($generator, $deferred)));
-
-        return Internal\PromiseWrapper::createUnhandled($deferred->promise(), $this->unhandledFailingPromises);
+        return Internal\PromiseWrapper::createUnhandled(new \Amp\Coroutine($wrapper($generator)), $this->unhandledFailingPromises);
     }
 
     /**
