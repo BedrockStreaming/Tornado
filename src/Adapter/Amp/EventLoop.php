@@ -55,18 +55,14 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 )->getAmpPromise();
 
                 // Forwards promise value/exception to underlying generator
-                $blockingPromiseValue = null;
-                $blockingPromiseException = null;
                 try {
                     $blockingPromiseValue = yield $blockingPromise;
                 } catch (\Throwable $throwable) {
-                    $blockingPromiseException = $throwable;
+                    $generator->throw($throwable);
+
+                    continue;
                 }
-                if ($blockingPromiseException) {
-                    $generator->throw($blockingPromiseException);
-                } else {
-                    $generator->send($blockingPromiseValue);
-                }
+                $generator->send($blockingPromiseValue);
             }
 
             return $generator->getReturn();
