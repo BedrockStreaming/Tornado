@@ -112,13 +112,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     $results[$i] = $value;
 
                     if (--$remaining === 0 && !$deferred->isComplete()) {
-                        $globalWrapper->settle(null, $results);
+                        $globalWrapper->settle(value: $results);
                         $deferred->complete($results);
                     }
                 })
                 ->catch(static function (\Throwable $error) use ($deferred, $globalWrapper): void {
                     if (!$deferred->isComplete()) {
-                        $globalWrapper->settle($error, null);
+                        $globalWrapper->settle(error: $error);
                         $deferred->error($error);
                     }
                 })
@@ -205,7 +205,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function promiseRejected(\Throwable $throwable): Promise
     {
         $promise = Internal\PromiseWrapper::createHandled(Future::error($throwable));
-        $promise->settle($throwable, null);
+        $promise->settle(error: $throwable);
 
         return $promise;
     }
@@ -313,7 +313,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     private function rejectedUnhandled(\Throwable $throwable): Internal\PromiseWrapper
     {
         $promise = Internal\PromiseWrapper::createUnhandled(Future::error($throwable), $this->unhandledFailingPromises);
-        $promise->settle($throwable, null);
+        $promise->settle(error: $throwable);
 
         return $promise;
     }
@@ -330,7 +330,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
                 $next = $this->advance($generator);
             } catch (\Throwable $throwable) {
-                $wrapper->settle($throwable, null);
+                $wrapper->settle(error: $throwable);
                 $deferred->error($throwable);
 
                 return;
@@ -343,7 +343,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
 
             $return = $generator->getReturn();
-            $wrapper->settle(null, $return);
+            $wrapper->settle(value: $return);
             $deferred->complete($return);
         };
 

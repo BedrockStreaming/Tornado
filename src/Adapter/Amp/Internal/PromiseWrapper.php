@@ -66,7 +66,7 @@ class PromiseWrapper implements Promise
     public static function createFulfilled(mixed $value): self
     {
         $promise = self::createHandled(Future::complete($value));
-        $promise->settle(null, $value);
+        $promise->settle(value: $value);
 
         return $promise;
     }
@@ -102,7 +102,7 @@ class PromiseWrapper implements Promise
         return $this->isSettled;
     }
 
-    public function settle(?\Throwable $error, mixed $value): void
+    public function settle(?\Throwable $error = null, mixed $value = null): void
     {
         $this->isSettled = true;
         $this->error = $error;
