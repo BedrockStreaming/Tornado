@@ -18,6 +18,10 @@ use M6Web\Tornado\Promise;
  */
 class PromiseWrapper implements Promise
 {
+    private bool $isSettled = false;
+    private mixed $value = null;
+    private ?\Throwable $error = null;
+
     /**
      * Use named (static) constructor instead
      *
@@ -57,6 +61,17 @@ class PromiseWrapper implements Promise
     }
 
     /**
+     * @return self<TValue>
+     */
+    public static function createFulfilled(mixed $value): self
+    {
+        $promise = self::createHandled(Future::complete($value));
+        $promise->settle(null, $value);
+
+        return $promise;
+    }
+
+    /**
      * @param Promise<TValue> $promise
      *
      * @return self<TValue>
@@ -70,5 +85,27 @@ class PromiseWrapper implements Promise
         $failingPromiseCollection->unwatchPromise($promise);
 
         return $promise;
+    }
+
+    public function getError(): ?\Throwable
+    {
+        return $this->error;
+    }
+
+    public function getValue(): mixed
+    {
+        return $this->value;
+    }
+
+    public function isSettled(): bool
+    {
+        return $this->isSettled;
+    }
+
+    public function settle(?\Throwable $error, mixed $value): void
+    {
+        $this->isSettled = true;
+        $this->error = $error;
+        $this->value = $value;
     }
 }

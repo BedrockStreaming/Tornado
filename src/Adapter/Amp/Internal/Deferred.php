@@ -39,6 +39,7 @@ class Deferred implements \M6Web\Tornado\Deferred
     public function resolve($value): void
     {
         $this->ampDeferred->complete($value);
+        $this->promise->settle(null, $value);
     }
 
     /**
@@ -47,5 +48,6 @@ class Deferred implements \M6Web\Tornado\Deferred
     public function reject(\Throwable $throwable): void
     {
         $this->ampDeferred->error($throwable);
+        $this->promise->settle($throwable, null);
     }
 }
