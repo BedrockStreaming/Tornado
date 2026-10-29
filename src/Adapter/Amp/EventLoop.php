@@ -73,56 +73,67 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $wrappers = array_map(
-            fn (Promise $promise): Internal\PromiseWrapper => Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises),
-            $promises
-        );
+        $deferred = null;
+        $globalWrapper = null;
+        $firstError = null;
+        $results = [];
+        $remaining = \count($promises);
 
-        $values = [];
+        foreach ($promises as $i => $promise) {
+            $wrapper = Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises);
 
-        foreach ($wrappers as $index => $promise) {
-            if (!$promise->isSettled()) {
-                $values = null;
-
-                break;
+            if ($firstError !== null) {
+                continue;
             }
 
-            if ($promise->getError() !== null) {
-                return $this->rejectedUnhandled($promise->getError());
+            if ($wrapper->isSettled()) {
+                $error = $wrapper->getError();
+
+                if ($error === null) {
+                    $results[$i] = $wrapper->getValue();
+                    $remaining--;
+
+                    continue;
+                }
+
+                if ($deferred === null) {
+                    $firstError = $error;
+
+                    continue;
+                }
             }
 
-            $values[$index] = $promise->getValue();
-        }
+            $results[$i] = null;
+            $deferred ??= new DeferredFuture();
+            $globalWrapper ??= Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
 
-        if ($values !== null) {
-            return Internal\PromiseWrapper::createFulfilled($values);
-        }
-
-        $deferred = new DeferredFuture();
-        $wrapper = Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
-        $results = \array_fill_keys(\array_keys($wrappers), null);
-        $remaining = \count($wrappers);
-
-        foreach ($wrappers as $index => $promise) {
-            $promise->ampFuture
-                ->map(static function (mixed $value) use ($index, &$results, &$remaining, $deferred, $wrapper): void {
-                    $results[$index] = $value;
+            $wrapper->ampFuture
+                ->map(static function (mixed $value) use ($i, &$results, &$remaining, $deferred, $globalWrapper): void {
+                    $results[$i] = $value;
 
                     if (--$remaining === 0 && !$deferred->isComplete()) {
-                        $wrapper->settle(null, $results);
+                        $globalWrapper->settle(null, $results);
                         $deferred->complete($results);
                     }
                 })
-                ->catch(static function (\Throwable $error) use ($deferred, $wrapper): void {
+                ->catch(static function (\Throwable $error) use ($deferred, $globalWrapper): void {
                     if (!$deferred->isComplete()) {
-                        $wrapper->settle($error, null);
+                        $globalWrapper->settle($error, null);
                         $deferred->error($error);
                     }
                 })
                 ->ignore();
         }
 
-        return $wrapper;
+        if ($firstError !== null) {
+            return $this->rejectedUnhandled($firstError);
+        }
+
+        if ($globalWrapper === null) {
+            return Internal\PromiseWrapper::createFulfilled($results);
+        }
+
+        return $globalWrapper;
     }
 
     /**
