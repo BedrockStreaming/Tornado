@@ -9,7 +9,19 @@ $finder->in(
     ]
 );
 
-$config = new M6Web\CS\Config\BedrockStreaming();
+$baseConfig = new M6Web\CS\Config\BedrockStreaming();
+
+$config = new PhpCsFixer\Config('Bedrock Streaming');
 $config->setFinder($finder);
+
+$override_rules = array_merge(
+    $baseConfig->getRules(),
+    [
+        // Adding strict_types should be part of another PR
+        'declare_strict_types' => false,
+    ]
+);
+
+$config->setRules($override_rules);
 
 return $config;
