@@ -23,7 +23,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         try {
-            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getAmpFuture()]);
+            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise)->getAmpFuture()]);
             $this->unhandledFailingPromises->throwIfWatchedFailingPromiseExists();
 
             return $result[0] ?? null;
@@ -76,7 +76,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $remaining = \count($promises);
 
         foreach ($promises as $i => $promise) {
-            $wrapper = Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises);
+            $wrapper = Internal\PromiseWrapper::toHandledPromise($promise);
 
             if ($firstError !== null) {
                 continue;
@@ -157,7 +157,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $globalWrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
         foreach ($promises as $promise) {
-            Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)
+            Internal\PromiseWrapper::toHandledPromise($promise)
                 ->onSettle(static function (?\Throwable $error, mixed $value) use ($globalWrapper): void {
                     if (!$globalWrapper->isSettled()) {
                         $globalWrapper->settle($error, $value);
@@ -268,7 +268,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
             }
 
-            $blockingPromise = Internal\PromiseWrapper::toHandledPromise($blockingPromise, $this->unhandledFailingPromises);
+            $blockingPromise = Internal\PromiseWrapper::toHandledPromise($blockingPromise);
 
             if (!$blockingPromise->isSettled()) {
                 return $blockingPromise;

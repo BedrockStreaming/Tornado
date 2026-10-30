@@ -68,14 +68,14 @@ final class PromiseWrapper implements Promise
      *
      * @return self<TValue>
      */
-    public static function toHandledPromise(Promise $promise, FailingPromiseCollection $failingPromiseCollection): self
+    public static function toHandledPromise(Promise $promise): self
     {
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         $promise->isHandled = true;
         if ($promise->isWatched) {
             $promise->isWatched = false;
-            $failingPromiseCollection->unwatchPromise($promise);
+            $promise->failingPromiseCollection?->unwatchPromise($promise);
         }
 
         return $promise;

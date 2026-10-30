@@ -84,6 +84,29 @@ class EventLoopTest extends EventLoopTestCase
         $eventLoop->wait($promise);
     }
 
+    public function testRejectionHandledByAnotherLoopShouldBeRemovedFromOriginalLoop(): void
+    {
+        $originalLoop = $this->createEventLoop();
+        $otherLoop = $this->createEventLoop();
+        $deferred = $originalLoop->deferred();
+        $promise = $originalLoop->async(
+            (fn (): \Generator => yield $deferred->getPromise())()
+        );
+        $expectedException = new \RuntimeException('Original loop rejection');
+        $deferred->reject($expectedException);
+
+        $caughtException = null;
+
+        try {
+            $otherLoop->wait($promise);
+        } catch (\RuntimeException $exception) {
+            $caughtException = $exception;
+        }
+
+        $this->assertSame($expectedException, $caughtException);
+        $this->assertSame('ok', $originalLoop->wait($originalLoop->promiseFulfilled('ok')));
+    }
+
     protected function tearDown(): void
     {
         gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
