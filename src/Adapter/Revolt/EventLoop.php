@@ -64,57 +64,71 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function async(\Generator $generator): Promise
     {
         $promise = PendingPromise::createUnhandled($this->unhandledFailingPromises);
-        $this->step($generator, $promise, fn () => $generator->current());
+        $this->run($generator, $promise);
 
         return $promise;
     }
 
     /**
      * Runs the generator synchronously as long as it yields settled promises,
-     * then schedules its next step once the yielded promise is settled.
+     * then schedules its resumption once the yielded promise is settled.
      *
      * @param \Generator<int, Promise, mixed, mixed> $generator
      * @param PendingPromise<mixed>                  $promise
-     * @param \Closure(): mixed                      $advance
      */
-    private function step(\Generator $generator, PendingPromise $promise, \Closure $advance): void
+    private function run(\Generator $generator, PendingPromise $promise): void
     {
         try {
-            while (true) {
-                $blockingPromise = $advance();
-                if (!$generator->valid()) {
-                    $promise->resolve($generator->getReturn());
-
-                    return;
-                }
+            while ($generator->valid()) {
+                $blockingPromise = $generator->current();
                 if (!$blockingPromise instanceof Promise) {
                     throw new \Error('Asynchronous function is yielding a ['.gettype($blockingPromise).'] instead of a Promise.');
                 }
+                $blockingPromise = PendingPromise::toHandledPromise($blockingPromise);
 
-                $isSettledSynchronously = true;
-                $next = null;
-                $continue = function (\Closure $advance) use ($generator, $promise, &$isSettledSynchronously, &$next): void {
-                    if ($isSettledSynchronously) { // @phpstan-ignore if.alwaysTrue (modified by reference after the callbacks registration)
-                        $next = $advance;
-                    } else {
-                        // Queued so that the resolver's call stack is not re-entered.
-                        Loop::queue(fn () => $this->step($generator, $promise, $advance));
-                    }
-                };
-                PendingPromise::toHandledPromise($blockingPromise)->addCallbacks(
-                    fn ($value) => $continue(fn () => $generator->send($value)),
-                    fn (\Throwable $throwable) => $continue(fn () => $generator->throw($throwable))
-                );
-                $isSettledSynchronously = false;
+                if (!$blockingPromise->isSettled()) {
+                    // Queued so that the resolver's call stack is not re-entered.
+                    $blockingPromise->onSettle(
+                        fn (?\Throwable $throwable, $value) => Loop::queue($this->resume(...), $generator, $promise, $value, $throwable),
+                    );
 
-                if ($next === null) {
                     return;
                 }
-                $advance = $next;
+
+                if (($throwable = $blockingPromise->getThrowable()) !== null) {
+                    $generator->throw($throwable);
+                } else {
+                    $generator->send($blockingPromise->getValue());
+                }
             }
         } catch (\Throwable $throwable) {
             $promise->reject($throwable);
+
+            return;
         }
+
+        $promise->resolve($generator->getReturn());
+    }
+
+    /**
+     * @param \Generator<int, Promise, mixed, mixed> $generator
+     * @param PendingPromise<mixed>                  $promise
+     */
+    private function resume(\Generator $generator, PendingPromise $promise, mixed $value, ?\Throwable $throwable): void
+    {
+        try {
+            if ($throwable !== null) {
+                $generator->throw($throwable);
+            } else {
+                $generator->send($value);
+            }
+        } catch (\Throwable $throwable) {
+            $promise->reject($throwable);
+
+            return;
+        }
+
+        $this->run($generator, $promise);
     }
 
     /**
@@ -131,15 +145,22 @@ class EventLoop implements \M6Web\Tornado\EventLoop
         $allResults = array_fill_keys(array_keys($promises), null);
 
         foreach ($promises as $index => $promise) {
-            PendingPromise::toHandledPromise($promise)->addCallbacks(
-                function ($value) use ($index, $globalPromise, &$nbPromises, &$allResults): void {
-                    $allResults[$index] = $value;
-                    if (--$nbPromises === 0) {
-                        $globalPromise->resolve($allResults);
-                    }
-                },
-                function (\Throwable $throwable) use ($globalPromise, &$nbPromises): void {
-                    if ($nbPromises > 0) {
+            $promise = PendingPromise::toHandledPromise($promise);
+            if ($promise->isSettled() && $promise->getThrowable() === null) {
+                $allResults[$index] = $promise->getValue();
+                if (--$nbPromises === 0) {
+                    $globalPromise->resolve($allResults);
+                }
+                continue;
+            }
+            $promise->onSettle(
+                function (?\Throwable $throwable, $value) use ($index, $globalPromise, &$nbPromises, &$allResults): void {
+                    if ($throwable === null) {
+                        $allResults[$index] = $value;
+                        if (--$nbPromises === 0) {
+                            $globalPromise->resolve($allResults);
+                        }
+                    } elseif ($nbPromises > 0) {
                         $nbPromises = -1;
                         $globalPromise->reject($throwable);
                     }
