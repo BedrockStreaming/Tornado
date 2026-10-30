@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace M6Web\Tornado\Adapter\Amp\Internal;
 
+use Amp\DeferredFuture;
 use Amp\Future;
 use M6Web\Tornado\Adapter\Common\Internal\FailingPromiseCollection;
 use M6Web\Tornado\Promise;
@@ -16,48 +17,39 @@ use M6Web\Tornado\Promise;
  *
  * @implements Promise<TValue>
  */
-class PromiseWrapper implements Promise
+final class PromiseWrapper implements Promise
 {
     private bool $isSettled = false;
     private mixed $value = null;
     private ?\Throwable $error = null;
+    private bool $isWatched = false;
+    /** @var list<\Closure(?\Throwable, mixed): void> */
+    private array $callbacks = [];
+    private ?DeferredFuture $ampDeferred = null;
 
     /**
      * Use named (static) constructor instead
-     *
-     * @param Future<TValue> $ampFuture
      */
     private function __construct(
-        public readonly Future $ampFuture,
         private bool $isHandled,
+        private readonly ?FailingPromiseCollection $failingPromiseCollection,
     ) {
     }
 
     /**
      * @return self<TValue>
      */
-    public static function createUnhandled(Future $ampPromise, FailingPromiseCollection $failingPromiseCollection): self
+    public static function createUnhandled(FailingPromiseCollection $failingPromiseCollection): self
     {
-        $promiseWrapper = new self($ampPromise, false);
-        $promiseWrapper->ampFuture->catch(
-            function (?\Throwable $reason) use ($promiseWrapper, $failingPromiseCollection): void {
-                if ($reason !== null && !$promiseWrapper->isHandled) {
-                    $failingPromiseCollection->watchFailingPromise($promiseWrapper, $reason);
-                }
-            }
-        );
-
-        return $promiseWrapper;
+        return new self(false, $failingPromiseCollection);
     }
 
     /**
      * @return self<TValue>
      */
-    public static function createHandled(Future $ampPromise): self
+    public static function createHandled(): self
     {
-        $ampPromise->ignore();
-
-        return new self($ampPromise, true);
+        return new self(true, null);
     }
 
     /**
@@ -65,7 +57,7 @@ class PromiseWrapper implements Promise
      */
     public static function createFulfilled(mixed $value): self
     {
-        $promise = self::createHandled(Future::complete($value));
+        $promise = new self(true, null);
         $promise->settle(value: $value);
 
         return $promise;
@@ -81,10 +73,40 @@ class PromiseWrapper implements Promise
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         $promise->isHandled = true;
-        $promise->ampFuture->ignore();
-        $failingPromiseCollection->unwatchPromise($promise);
+        if ($promise->isWatched) {
+            $promise->isWatched = false;
+            $failingPromiseCollection->unwatchPromise($promise);
+        }
 
         return $promise;
+    }
+
+    /**
+     * @param \Closure(?\Throwable, mixed): void $callback
+     */
+    public function onSettle(\Closure $callback): void
+    {
+        if ($this->isSettled) {
+            $callback($this->error, $this->value);
+
+            return;
+        }
+
+        $this->callbacks[] = $callback;
+    }
+
+    /**
+     * @return Future<TValue>
+     */
+    public function getAmpFuture(): Future
+    {
+        if ($this->isSettled) {
+            return $this->error === null ? Future::complete($this->value) : Future::error($this->error);
+        }
+
+        $this->ampDeferred ??= new DeferredFuture();
+
+        return $this->ampDeferred->getFuture();
     }
 
     public function getError(): ?\Throwable
@@ -104,8 +126,27 @@ class PromiseWrapper implements Promise
 
     public function settle(?\Throwable $error = null, mixed $value = null): void
     {
+        if ($this->isSettled) {
+            throw new \Error('Promise already settled.');
+        }
+
         $this->isSettled = true;
         $this->error = $error;
         $this->value = $value;
+
+        if ($error !== null && !$this->isHandled && $this->failingPromiseCollection !== null) {
+            $this->isWatched = true;
+            $this->failingPromiseCollection->watchFailingPromise($this, $error);
+        }
+
+        if ($this->ampDeferred !== null) {
+            $error === null ? $this->ampDeferred->complete($value) : $this->ampDeferred->error($error);
+        }
+
+        $callbacks = $this->callbacks;
+        $this->callbacks = [];
+        foreach ($callbacks as $callback) {
+            $callback($error, $value);
+        }
     }
 }

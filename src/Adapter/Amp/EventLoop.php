@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace M6Web\Tornado\Adapter\Amp;
 
-use Amp\DeferredFuture;
-use Amp\Future;
 use M6Web\Tornado\Adapter\Common;
 use M6Web\Tornado\Deferred;
 use M6Web\Tornado\Promise;
@@ -25,7 +23,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         try {
-            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->ampFuture]);
+            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)->getAmpFuture()]);
             $this->unhandledFailingPromises->throwIfWatchedFailingPromiseExists();
 
             return $result[0] ?? null;
@@ -61,9 +59,8 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return Internal\PromiseWrapper::createFulfilled($generator->getReturn());
         }
 
-        $deferred = new DeferredFuture();
-        $wrapper = Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
-        $this->resumeOn($pending, $generator, $deferred, $wrapper);
+        $wrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
+        $this->resumeOn($pending, $generator, $wrapper);
 
         return $wrapper;
     }
@@ -73,7 +70,6 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseAll(Promise ...$promises): Promise
     {
-        $deferred = null;
         $globalWrapper = null;
         $firstError = null;
         $results = [];
@@ -96,7 +92,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                     continue;
                 }
 
-                if ($deferred === null) {
+                if ($globalWrapper === null) {
                     $firstError = $error;
 
                     continue;
@@ -104,25 +100,25 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             }
 
             $results[$i] = null;
-            $deferred ??= new DeferredFuture();
-            $globalWrapper ??= Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
+            $globalWrapper ??= Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
-            $wrapper->ampFuture
-                ->map(static function (mixed $value) use ($i, &$results, &$remaining, $deferred, $globalWrapper): void {
-                    $results[$i] = $value;
+            $wrapper->onSettle(static function (?\Throwable $error, mixed $value) use ($i, &$results, &$remaining, $globalWrapper): void {
+                if ($globalWrapper->isSettled()) {
+                    return;
+                }
 
-                    if (--$remaining === 0 && !$deferred->isComplete()) {
-                        $globalWrapper->settle(value: $results);
-                        $deferred->complete($results);
-                    }
-                })
-                ->catch(static function (\Throwable $error) use ($deferred, $globalWrapper): void {
-                    if (!$deferred->isComplete()) {
-                        $globalWrapper->settle(error: $error);
-                        $deferred->error($error);
-                    }
-                })
-                ->ignore();
+                if ($error !== null) {
+                    $globalWrapper->settle(error: $error);
+
+                    return;
+                }
+
+                $results[$i] = $value;
+
+                if (--$remaining === 0) {
+                    $globalWrapper->settle(value: $results);
+                }
+            });
         }
 
         if ($firstError !== null) {
@@ -158,37 +154,18 @@ class EventLoop implements \M6Web\Tornado\EventLoop
             return $this->promiseFulfilled(null);
         }
 
-        $deferred = new DeferredFuture();
-        $isFirstPromise = true;
+        $globalWrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
-        $wrapPromise = function (Future $future) use ($deferred, &$isFirstPromise) {
-            try {
-                $result = $future->await();
-                if ($isFirstPromise) {
-                    $isFirstPromise = false;
-                    $deferred->complete($result);
-                }
-            } catch (\Throwable $throwable) {
-                if ($isFirstPromise) {
-                    $isFirstPromise = false;
-                    $deferred->error($throwable);
-                }
-            }
-        };
-
-        $futures = array_map(
-            fn (Promise $promise) => Internal\PromiseWrapper::toHandledPromise(
-                $promise,
-                $this->unhandledFailingPromises
-            )->ampFuture,
-            $promises
-        );
-
-        foreach ($futures as $future) {
-            \Amp\async(fn () => $wrapPromise($future));
+        foreach ($promises as $promise) {
+            Internal\PromiseWrapper::toHandledPromise($promise, $this->unhandledFailingPromises)
+                ->onSettle(static function (?\Throwable $error, mixed $value) use ($globalWrapper): void {
+                    if (!$globalWrapper->isSettled()) {
+                        $globalWrapper->settle($error, $value);
+                    }
+                });
         }
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
+        return $globalWrapper;
     }
 
     /**
@@ -204,7 +181,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function promiseRejected(\Throwable $throwable): Promise
     {
-        $promise = Internal\PromiseWrapper::createHandled(Future::error($throwable));
+        $promise = Internal\PromiseWrapper::createHandled();
         $promise->settle(error: $throwable);
 
         return $promise;
@@ -215,13 +192,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function idle(): Promise
     {
-        $deferred = new DeferredFuture();
+        $wrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
-        \Revolt\EventLoop::defer(function () use ($deferred): void {
-            $deferred->complete();
+        \Revolt\EventLoop::defer(static function () use ($wrapper): void {
+            $wrapper->settle();
         });
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
+        return $wrapper;
     }
 
     /**
@@ -229,13 +206,13 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function delay(int $milliseconds): Promise
     {
-        $deferred = new DeferredFuture();
+        $wrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
-        \Revolt\EventLoop::delay($milliseconds / 1000, function () use ($deferred): void {
-            $deferred->complete();
+        \Revolt\EventLoop::delay($milliseconds / 1000, static function () use ($wrapper): void {
+            $wrapper->settle();
         });
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
+        return $wrapper;
     }
 
     /**
@@ -243,10 +220,7 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function deferred(): Deferred
     {
-        return new Internal\Deferred(
-            $deferred = new DeferredFuture(),
-            Internal\PromiseWrapper::createHandled($deferred->getFuture())
-        );
+        return new Internal\Deferred(Internal\PromiseWrapper::createHandled());
     }
 
     /**
@@ -254,17 +228,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function readable($stream): Promise
     {
-        $deferred = new DeferredFuture();
+        $wrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
         \Revolt\EventLoop::onReadable(
             $stream,
-            function ($watcherId, $stream) use ($deferred): void {
+            static function ($watcherId, $stream) use ($wrapper): void {
                 \Revolt\EventLoop::cancel($watcherId);
-                $deferred->complete($stream);
+                $wrapper->settle(value: $stream);
             }
         );
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
+        return $wrapper;
     }
 
     /**
@@ -272,17 +246,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
      */
     public function writable($stream): Promise
     {
-        $deferred = new DeferredFuture();
+        $wrapper = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
 
         \Revolt\EventLoop::onWritable(
             $stream,
-            function ($watcherId, $stream) use ($deferred): void {
+            static function ($watcherId, $stream) use ($wrapper): void {
                 \Revolt\EventLoop::cancel($watcherId);
-                $deferred->complete($stream);
+                $wrapper->settle(value: $stream);
             }
         );
 
-        return Internal\PromiseWrapper::createUnhandled($deferred->getFuture(), $this->unhandledFailingPromises);
+        return $wrapper;
     }
 
     private function advance(\Generator $generator): ?Internal\PromiseWrapper
@@ -312,15 +286,15 @@ class EventLoop implements \M6Web\Tornado\EventLoop
 
     private function rejectedUnhandled(\Throwable $throwable): Internal\PromiseWrapper
     {
-        $promise = Internal\PromiseWrapper::createUnhandled(Future::error($throwable), $this->unhandledFailingPromises);
+        $promise = Internal\PromiseWrapper::createUnhandled($this->unhandledFailingPromises);
         $promise->settle(error: $throwable);
 
         return $promise;
     }
 
-    private function resumeOn(Internal\PromiseWrapper $pending, \Generator $generator, DeferredFuture $deferred, Internal\PromiseWrapper $wrapper): void
+    private function resumeOn(Internal\PromiseWrapper $pending, \Generator $generator, Internal\PromiseWrapper $wrapper): void
     {
-        $step = function (?\Throwable $error, mixed $value) use ($generator, $deferred, $wrapper): void {
+        $pending->onSettle(function (?\Throwable $error, mixed $value) use ($generator, $wrapper): void {
             try {
                 if ($error !== null) {
                     $generator->throw($error);
@@ -331,25 +305,17 @@ class EventLoop implements \M6Web\Tornado\EventLoop
                 $next = $this->advance($generator);
             } catch (\Throwable $throwable) {
                 $wrapper->settle(error: $throwable);
-                $deferred->error($throwable);
 
                 return;
             }
 
             if ($next !== null) {
-                $this->resumeOn($next, $generator, $deferred, $wrapper);
+                $this->resumeOn($next, $generator, $wrapper);
 
                 return;
             }
 
-            $return = $generator->getReturn();
-            $wrapper->settle(value: $return);
-            $deferred->complete($return);
-        };
-
-        $pending->ampFuture
-            ->map(static fn (mixed $value) => $step(null, $value))
-            ->catch(static fn (\Throwable $error) => $step($error, null))
-            ->ignore();
+            $wrapper->settle(value: $generator->getReturn());
+        });
     }
 }
