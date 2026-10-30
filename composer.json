@@ -34,16 +34,18 @@
         "phpstan/phpstan": "^1.0",
         "symfony/http-client": "^6.4",
         "psr/http-factory": "^1.0",
-        "http-interop/http-factory-guzzle": "^1.0"
+        "http-interop/http-factory-guzzle": "^1.0",
+        "revolt/event-loop": "^1.0"
     },
     "suggest": {
         "ext-curl": "Required to use Curl and HTTP2 features",
         "amphp/amp": "Required to use Tornado\\Adapter\\Amp\\EventLoop",
+        "revolt/event-loop": "Required to use Tornado\\Adapter\\Revolt\\EventLoop and Tornado\\Adapter\\Revolt\\HttpClient",
         "react/event-loop": "Required to use Tornado\\Adapter\\ReactPhp\\EventLoop",
         "react/promise": "Required to use Tornado\\Adapter\\ReactPhp\\EventLoop",
         "guzzlehttp/guzzle": "Required to use Tornado\\Adapter\\Guzzle\\HttpClient",
         "symfony/http-client": "Required to use Tornado\\Adapter\\Symfony\\HttpClient",
-        "psr/http-factory": "Required to use Tornado\\Adapter\\Symfony\\HttpClient"
+        "psr/http-factory": "Required to use Tornado\\Adapter\\Symfony\\HttpClient and Tornado\\Adapter\\Revolt\\HttpClient"
     },
     "config": {
         "bin-dir": "bin/"

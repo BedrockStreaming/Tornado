@@ -20,9 +20,9 @@ class PendingPromise implements Promise, Deferred
 {
     /** @var TValue */
     private $value;
-    /** @var \Throwable */
+    /** @var ?\Throwable */
     private $throwable;
-    /** @var callable[][] */
+    /** @var list<array{callable, callable}|\Closure(?\Throwable, mixed): void> */
     private $callbacks = [];
     /** @var bool */
     private $isSettled = false;
@@ -62,7 +62,10 @@ class PendingPromise implements Promise, Deferred
         assert($promise instanceof self, new \Error('Input promise was not created by this adapter.'));
 
         if ($promise->failingPromiseCollection !== null) {
-            $promise->failingPromiseCollection->unwatchPromise($promise);
+            // Only rejected promises are watched.
+            if ($promise->throwable !== null) {
+                $promise->failingPromiseCollection->unwatchPromise($promise);
+            }
             $promise->failingPromiseCollection = null;
         }
 
@@ -100,6 +103,24 @@ class PendingPromise implements Promise, Deferred
         return $this;
     }
 
+    public function isSettled(): bool
+    {
+        return $this->isSettled;
+    }
+
+    /**
+     * @return TValue
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    public function getThrowable(): ?\Throwable
+    {
+        return $this->throwable;
+    }
+
     public function addCallbacks(callable $onResolved, callable $onRejected): self
     {
         $this->callbacks[] = [$onResolved, $onRejected];
@@ -107,15 +128,27 @@ class PendingPromise implements Promise, Deferred
         return $this->isSettled ? $this->triggerCallbacks() : $this;
     }
 
+    /**
+     * Same as addCallbacks, with a single callback receiving the throwable (null on success) and the value.
+     *
+     * @param \Closure(?\Throwable, mixed): void $callback
+     */
+    public function onSettle(\Closure $callback): self
+    {
+        $this->callbacks[] = $callback;
+
+        return $this->isSettled ? $this->triggerCallbacks() : $this;
+    }
+
     private function triggerCallbacks(): self
     {
-        if ($this->throwable !== null) {
-            foreach ($this->callbacks as [, $onRejected]) {
-                $onRejected($this->throwable);
-            }
-        } else {
-            foreach ($this->callbacks as [$onResolved]) {
-                $onResolved($this->value);
+        foreach ($this->callbacks as $callback) {
+            if ($callback instanceof \Closure) {
+                $callback($this->throwable, $this->value);
+            } elseif ($this->throwable !== null) {
+                $callback[1]($this->throwable);
+            } else {
+                $callback[0]($this->value);
             }
         }
         // Callbacks must be triggered only once!

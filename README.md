@@ -6,7 +6,7 @@
 A library for asynchronous programming in [Php](https://secure.php.net/).
 
 *Tornado* is composed of several interfaces to write asynchronous programs using [generators](https://secure.php.net/manual/en/language.generators.php).
-This library provides adapters for popular asynchronous frameworks ([ReactPhp](https://reactphp.org/), [Amp](https://amphp.org/))
+This library provides adapters for popular asynchronous frameworks ([ReactPhp](https://reactphp.org/), [Amp](https://amphp.org/), [Revolt](https://revolt.run/))
 and built-in adapters to understand how to write your own.
 
 
