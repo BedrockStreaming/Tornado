@@ -23,10 +23,10 @@ class EventLoop implements \M6Web\Tornado\EventLoop
     public function wait(Promise $promise)
     {
         try {
-            $result = \Amp\Future\await([Internal\PromiseWrapper::toHandledPromise($promise)->getAmpFuture()]);
+            $result = Internal\PromiseWrapper::toHandledPromise($promise)->getAmpFuture()->await();
             $this->unhandledFailingPromises->throwIfWatchedFailingPromiseExists();
 
-            return $result[0] ?? null;
+            return $result;
         } catch (\Error $error) {
             // Modify exceptions sent by Amp itself
             if ($error->getCode() !== 0) {
