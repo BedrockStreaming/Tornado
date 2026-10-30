@@ -69,6 +69,7 @@ function compareMethods(EventLoop $eventLoop)
 $eventLoop = new Adapter\Tornado\EventLoop();
 // $eventLoop = new Adapter\Tornado\SynchronousEventLoop();
 // $eventLoop = new Adapter\Amp\EventLoop();
+// $eventLoop = new Adapter\Revolt\EventLoop();
 // $eventLoop = new Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 echo "Let's start!\n";

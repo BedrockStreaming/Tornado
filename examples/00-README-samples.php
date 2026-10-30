@@ -102,6 +102,7 @@ function waitException(Tornado\EventLoop $eventLoop)
 $eventLoop = new Tornado\Adapter\Tornado\EventLoop();
 // $eventLoop = new Tornado\Adapter\Tornado\SynchronousEventLoop();
 // $eventLoop = new Tornado\Adapter\Amp\EventLoop();
+// $eventLoop = new Tornado\Adapter\Revolt\EventLoop();
 // $eventLoop = new Tornado\Adapter\ReactPhp\EventLoop(new \React\EventLoop\StreamSelectLoop());
 
 // Tornado provides only one HttpClient implementation, using Guzzle
